@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Pantalla Cliente — Sistema POS</title>
+  <title>Pantalla Cliente — Pollos Vivi · Broasther y Leña</title>
   <link rel="stylesheet" href="css/main.css">
   <style>
     body {
@@ -183,9 +183,11 @@
 </head>
 <body>
 
-  <div class="cliente-logo">🍗</div>
-  <div class="cliente-brand">Pollo &amp; Salchipapas</div>
-  <p class="cliente-tagline">El mejor sabor de la ciudad</p>
+  <div class="cliente-logo">
+    <img src="/static/logo.jpg" alt="Logo Pollos Vivi" style="width:100px;height:100px;object-fit:cover;border-radius:var(--radius-xl);filter:drop-shadow(0 4px 16px rgba(238,93,41,0.45));" onerror="this.style.display='none';this.parentNode.innerHTML='🍗';">
+  </div>
+  <div class="cliente-brand">Pollos Vivi</div>
+  <p class="cliente-tagline">Broasther y Leña · El mejor sabor de la ciudad</p>
 
   <!-- Pantalla de espera -->
   <div class="idle-screen" id="idle-screen">

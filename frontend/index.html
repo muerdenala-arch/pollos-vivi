@@ -3,10 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>POS — Cajero | Sistema POS</title>
-  <meta name="description" content="Pantalla de cajero para el Sistema POS de Pollo y Salchipapas">
+  <title>POS — Cajero | Pollos Vivi · Broasther y Leña</title>
+  <meta name="description" content="Pantalla de cajero para el Sistema POS de Pollos Vivi - Broasther y Leña">
   <link rel="stylesheet" href="css/main.css">
   <link rel="stylesheet" href="css/pos.css">
+  <link rel="stylesheet" href="css/animations.css">
 </head>
 <body>
 
@@ -16,10 +17,12 @@
   <!-- Header -->
   <header class="pos-header">
     <div class="pos-header-brand">
-      <div class="pos-header-logo">🍗</div>
+      <div class="pos-header-logo">
+        <img src="/static/logo.jpg" alt="Logo Pollos Vivi" style="width:40px;height:40px;object-fit:cover;border-radius:var(--radius-md);" onerror="this.style.display='none';this.parentNode.textContent='🍗'">
+      </div>
       <div>
-        <div class="pos-header-title">Sistema POS</div>
-        <div class="pos-header-subtitle">Pollo &amp; Salchipapas</div>
+        <div class="pos-header-title">Pollos Vivi</div>
+        <div class="pos-header-subtitle">Broasther y Leña</div>
       </div>
     </div>
 
@@ -144,7 +147,7 @@
 <!-- ══ Modal: Pago con QR ═════════════════════════════════════════════════════ -->
 <div class="modal-overlay" id="modal-qr">
   <div class="modal" style="min-width:420px;text-align:center;">
-    <h2 class="modal-title">📱 Pago con QR</h2>
+    <h2 class="modal-title">📱 Pago con QR — Pollos Vivi</h2>
 
     <div class="qr-modal-content">
       <p class="qr-instructions">El cliente debe escanear el QR con su aplicación bancaria.</p>
@@ -152,11 +155,21 @@
         <span class="qr-currency">Bs.</span>
         <span id="qr-total-amount">0.00</span>
       </div>
+      <!-- QR Estático del negocio: siempre visible y legible -->
+      <div style="margin:var(--space-4) auto;background:#fff;border-radius:var(--radius-xl);padding:var(--space-4);display:inline-block;box-shadow:0 0 0 4px var(--color-accent-glow),var(--shadow-accent);">
+        <img
+          src="/static/qr_pago.jpg"
+          alt="Código QR de Pago — Pollos Vivi"
+          style="width:220px;height:220px;object-fit:contain;display:block;border-radius:var(--radius-lg);"
+          onerror="this.src='/static/uploads/qr_pago.png';this.onerror=null;"
+        >
+      </div>
+      <!-- QR dinámico (cuando se configure en el admin) -->
       <img
         id="qr-image"
         src=""
-        alt="Código QR de pago"
-        style="width:200px;height:200px;margin:0 auto;border-radius:var(--radius-lg);border:4px solid var(--color-border-2);object-fit:contain;background:#fff;"
+        alt="Código QR de pago dinámico"
+        style="display:none;width:0;height:0;"
       >
       <div class="qr-waiting" id="qr-waiting">
         <div class="spinner"></div>
@@ -258,6 +271,7 @@
   initPagos();
   posWS.connect();
 </script>
+<script src="js/animations.js"></script>
 
 </body>
 </html>

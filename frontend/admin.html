@@ -3,10 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Administración — Sistema POS</title>
-  <meta name="description" content="Panel de administración del Sistema POS">
+  <title>Administración — Pollos Vivi · Broasther y Leña</title>
+  <meta name="description" content="Panel de administración de Pollos Vivi - Broasther y Leña">
   <link rel="stylesheet" href="css/main.css">
   <link rel="stylesheet" href="css/admin.css">
+  <link rel="stylesheet" href="css/animations.css">
 </head>
 <body>
 
@@ -15,10 +16,12 @@
   <!-- ── Sidebar ──────────────────────────────────────────────────────────── -->
   <aside class="admin-sidebar">
     <div class="admin-sidebar-logo">
-      <div class="admin-sidebar-logo-icon">🍗</div>
+      <div class="admin-sidebar-logo-icon">
+        <img src="/static/logo.jpg" alt="Logo Pollos Vivi" style="width:40px;height:40px;object-fit:cover;border-radius:var(--radius-sm);" onerror="this.style.display='none';this.parentNode.textContent='🍗';">
+      </div>
       <div class="admin-sidebar-brand">
-        Sistema POS
-        <small>Administración</small>
+        Pollos Vivi
+        <small>Broasther y Leña</small>
       </div>
     </div>
 
@@ -741,6 +744,7 @@
 
   loadDashboard();
 </script>
+<script src="js/animations.js"></script>
 
 </body>
 </html>
