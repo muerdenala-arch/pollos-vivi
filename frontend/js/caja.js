@@ -33,6 +33,7 @@ export function abrirCaja(montoInicial) {
     abierta: true,
     monto_inicial: parseFloat(montoInicial),
     fecha: ahora.toISOString().split('T')[0],
+    apertura_ts: ahora.toISOString(), // timestamp exacto: para calcular ventas SOLO de este turno
     hora: ahora.toLocaleTimeString('es-BO', { hour: '2-digit', minute: '2-digit' }),
     cajero: sessionStorage.getItem('pos_nombre') || 'Cajero',
   };

@@ -280,31 +280,13 @@
         <div class="efectivo-label">Total a cobrar</div>
         <div class="efectivo-amount" id="efectivo-total">Bs. 0.00</div>
       </div>
-
-      <div class="form-group">
-        <label class="form-label" for="monto-recibido-input">Efectivo recibido (Bs.)</label>
-        <input
-          class="input-field"
-          type="number"
-          id="monto-recibido-input"
-          placeholder="0.00"
-          min="0"
-          step="0.50"
-          style="font-size:1.5rem;text-align:center;font-weight:700;"
-        >
-      </div>
-
-      <div class="efectivo-cambio hidden" id="efectivo-cambio-section">
-        <div class="cambio-label">Cambio a devolver</div>
-        <div class="cambio-amount" id="cambio-amount">Bs. 0.00</div>
-      </div>
     </div>
 
     <div class="flex gap-3 mt-6">
       <button class="btn btn-ghost w-full" onclick="import('./js/utils.js').then(m=>m.hideModal('modal-efectivo'))">
         Cancelar
       </button>
-      <button class="btn btn-success btn-lg w-full" id="confirm-efectivo-btn" disabled>
+      <button class="btn btn-success btn-lg w-full" id="confirm-efectivo-btn">
         ✅ Confirmar cobro
       </button>
     </div>
@@ -334,10 +316,6 @@
   const userAvatarEl = document.getElementById('user-avatar');
   if (userNameEl) userNameEl.textContent = nombre;
   if (userAvatarEl) userAvatarEl.textContent = nombre[0].toUpperCase();
-
-  // Ocultar boton "Menú Admin" para cajeros (solo admin puede ir al panel)
-  const menuBtn = document.querySelector('.pos-header-actions .btn[onclick]');
-  if (menuBtn && rol !== 'admin') menuBtn.style.display = 'none';
 
   // Logout
   document.getElementById('logout-btn')?.addEventListener('click', () => {
@@ -378,6 +356,12 @@
 
   // Verificar estado de caja al cargar
   checkCaja();
+
+  // Sincronización en tiempo real: si la caja se abre/cierra desde el panel
+  // admin en otra pestaña, este POS lo refleja solo, sin recargar.
+  window.addEventListener('storage', (e) => {
+    if (e.key === 'pos_caja_estado') checkCaja();
+  });
 
   // Focus automático en el campo si la caja no está abierta
   if (!cajaAbierta()) {

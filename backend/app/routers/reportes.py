@@ -19,9 +19,9 @@ from sqlalchemy import func, case
 from sqlalchemy.orm import Session, selectinload
 
 from ..database import get_db
-from ..models import Pedido, Pago, EstadoPedido, MetodoPago, EstadoPago
+from ..models import Pedido, Pago, EstadoPedido, MetodoPago, EstadoPago, RolUsuario, Usuario
 from ..schemas import ResumenVentasResponse, PedidoResponse
-from ..services.auth_service import require_admin
+from ..services.auth_service import require_admin, require_cajero
 
 router = APIRouter(prefix="/api/v1/reportes", tags=["Reportes y Estadísticas"])
 
@@ -36,13 +36,37 @@ def _rango_dia(fecha: date):
 @router.get("/ventas/dia", response_model=ResumenVentasResponse)
 def resumen_ventas_dia(
     fecha: Optional[date] = Query(default=None, description="Fecha (YYYY-MM-DD). Por defecto: hoy"),
+    desde: Optional[datetime] = Query(
+        default=None,
+        description="Timestamp ISO de apertura de turno. Si se da, acota el resumen desde ese "
+                    "instante en vez de desde el inicio del día, para no mezclar turnos ya cerrados."
+    ),
     db: Session = Depends(get_db),
-    _=Depends(require_admin)
+    current_user: Usuario = Depends(require_cajero)
 ):
-    """Resumen de ventas de un día específico (calculado íntegramente en SQL)."""
-    if fecha is None:
+    """
+    Resumen de ventas de un día específico (calculado íntegramente en SQL).
+    El cajero solo puede ver el resumen del día de HOY (su turno): se ignora
+    cualquier fecha que envíe, aunque la mande directo por la API. Solo el
+    admin puede consultar fechas pasadas.
+    """
+    if fecha is None or current_user.rol != RolUsuario.ADMIN:
         fecha = date.today()
     inicio, fin = _rango_dia(fecha)
+
+    # Si se pasa "desde" (hora de apertura del turno actual), acotamos el
+    # inicio del rango a ese instante para que el resumen sea SOLO del turno
+    # activo y no arrastre ventas de turnos anteriores ya cerrados el mismo
+    # día. Nunca se permite AMPLIAR el rango hacia atrás con este parámetro.
+    if desde is not None:
+        if desde.tzinfo is not None:
+            # El frontend manda ISO en UTC (Date.toISOString()); el resto del
+            # módulo trabaja con datetimes "naive" en hora local del servidor,
+            # igual que _rango_dia(). Se normaliza para poder comparar sin
+            # error y sin desalinear el filtro con esa misma convención.
+            desde = desde.astimezone().replace(tzinfo=None)
+        if desde > inicio:
+            inicio = desde
 
     # ── Conteos e ingresos por estado, en UNA sola consulta agregada ──
     Z = Decimal("0.00")

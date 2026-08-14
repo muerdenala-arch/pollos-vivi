@@ -58,17 +58,18 @@
     <button class="nav-item" id="nav-reportes" data-section="reportes">
       <span class="nav-icon">📈</span> Ventas del Día
     </button>
-    <button class="nav-item" id="nav-historial" data-section="historial">
+    <button class="nav-item" id="nav-historial" data-section="historial" data-admin-only>
       <span class="nav-icon">📋</span> Historial
     </button>
 
     <div class="nav-section-title">Caja</div>
+    <div id="sidebar-caja-badge" class="hidden" style="margin:0 var(--space-3) var(--space-2);background:var(--color-success-bg);border:1px solid var(--color-success);color:var(--color-success);border-radius:var(--radius-md);padding:6px 10px;font-size:0.72rem;font-weight:700;text-align:center;">🟢 Caja Abierta</div>
     <button class="nav-item" id="nav-caja" data-section="caja">
       <span class="nav-icon">💰</span> Apertura / Cierre
     </button>
 
     <div class="nav-section-title" style="margin-top:auto;">Accesos</div>
-    <button class="nav-item" id="nav-pos" onclick="window.open('/static/index.html','_blank')">
+    <button class="nav-item" id="nav-pos">
       <span class="nav-icon">🖥️</span> Abrir POS
     </button>
     <button class="nav-item" id="logout-btn">
@@ -473,13 +474,16 @@
 
     <!-- Reportes: Ventas del Día -->
     <section class="admin-section" id="section-reportes">
-      <div class="filters-bar">
+      <div class="filters-bar" data-admin-only>
         <div class="form-group" style="flex-direction:row;align-items:center;gap:var(--space-3);">
           <label class="form-label">Fecha:</label>
           <input class="input-field" type="date" id="reporte-fecha" style="width:auto;">
         </div>
         <button class="btn btn-primary" id="reporte-load-btn">📊 Cargar Reporte</button>
       </div>
+      <button class="btn btn-success btn-lg" id="btn-arqueo" style="margin-bottom:var(--space-5);">
+        🧮 Generar Reporte de Ventas (Arqueo de Turno)
+      </button>
       <div class="report-summary-card hidden" id="report-summary">
         <h3 style="font-weight:700;margin-bottom:var(--space-4);" id="report-title">Resumen</h3>
         <div class="stats-grid" style="margin-bottom:0;">
@@ -510,7 +514,7 @@
     </section>
 
     <!-- Historial de Pedidos -->
-    <section class="admin-section" id="section-historial">
+    <section class="admin-section" id="section-historial" data-admin-only>
       <div class="filters-bar">
         <input class="input-field" type="date" id="hist-fecha-inicio" style="width:auto;" placeholder="Desde">
         <input class="input-field" type="date" id="hist-fecha-fin" style="width:auto;" placeholder="Hasta">
@@ -586,12 +590,47 @@
   </main><!-- /admin-content -->
 </div><!-- /admin-layout -->
 
+<!-- ══ Modal: Arqueo de Turno ══════════════════════════════════════════════ -->
+<div class="modal-overlay" id="modal-arqueo">
+  <div class="modal" style="min-width:380px;">
+    <h2 class="modal-title">🧮 Arqueo de Turno</h2>
+    <div class="report-desglose" style="grid-template-columns:1fr;">
+      <div class="desglose-item">
+        <div class="desglose-label">💰 Monto Inicial Declarado</div>
+        <div class="desglose-value" id="arq-inicial">Bs. —</div>
+      </div>
+      <div class="desglose-item">
+        <div class="desglose-label">💵 Total Efectivo</div>
+        <div class="desglose-value text-success" id="arq-efectivo">Bs. —</div>
+      </div>
+      <div class="desglose-item">
+        <div class="desglose-label">📱 Total QR / Digital</div>
+        <div class="desglose-value text-accent" id="arq-qr">Bs. —</div>
+      </div>
+      <div class="desglose-item" style="border:2px solid var(--color-accent);">
+        <div class="desglose-label">🧮 Total Esperado en Caja (inicial + efectivo + QR)</div>
+        <div class="desglose-value" id="arq-total" style="font-size:1.6rem;">Bs. —</div>
+      </div>
+      <div class="desglose-item">
+        <div class="desglose-label">🧾 Pedidos Pagados en el Turno</div>
+        <div class="desglose-value" id="arq-pedidos">—</div>
+      </div>
+    </div>
+    <div class="flex gap-3 mt-6">
+      <button class="btn btn-ghost w-full" onclick="import('./js/utils.js').then(m=>m.hideModal('modal-arqueo'))">
+        Cerrar
+      </button>
+    </div>
+  </div>
+</div>
+
 <!-- Toast container -->
 <div id="toast-container" class="toast-container"></div>
 
 <script type="module">
-  import { requireAuth, showToast, estadoBadge, formatFecha, formatBs } from './js/utils.js';
+  import { requireAuth, showToast, estadoBadge, formatFecha, formatBs, showModal, hideModal } from './js/utils.js';
   import { Categorias, Presas, Productos, Reportes, TicketConfig, logout } from './js/api.js';
+  import { cajaAbierta, abrirCaja, cerrarCaja, getCajaState } from './js/caja.js';
 
   // Guard: cualquier usuario autenticado puede entrar; el rol decide qué ve
   if (!requireAuth()) throw new Error('No autenticado');
@@ -602,6 +641,17 @@
   document.getElementById('user-avatar').textContent = nombre[0].toUpperCase();
   document.getElementById('logout-btn').addEventListener('click', () => {
     if (confirm('¿Cerrar sesión?')) logout();
+  });
+
+  // "Abrir POS": el cajero navega en la MISMA pestaña, así el botón
+  // "⬅ Menú" del POS funciona como un verdadero "volver atrás". El admin
+  // lo sigue abriendo en pestaña nueva para mantener el panel a la vista.
+  document.getElementById('nav-pos')?.addEventListener('click', () => {
+    if (rol === 'admin') {
+      window.open('/static/index.html', '_blank');
+    } else {
+      window.location.href = '/static/index.html';
+    }
   });
 
   // ── Visibilidad según Rol ────────────────────────────────────────────────────
@@ -650,6 +700,7 @@
       if (section === 'ticket-config') loadTicketConfig();
       if (section === 'caja') refreshCajaUI();
       if (section === 'personal') loadPersonal();
+      if (section === 'reportes') cargarReporteDia();
     });
   });
 
@@ -1029,8 +1080,11 @@
   // ── REPORTES ───────────────────────────────────────────────────────────────
 
   document.getElementById('reporte-fecha').value = new Date().toISOString().split('T')[0];
-  document.getElementById('reporte-load-btn').addEventListener('click', async () => {
-    const fecha = document.getElementById('reporte-fecha').value;
+
+  // El cajero no tiene selector de fecha (data-admin-only): siempre pide "hoy",
+  // y el backend además fuerza la fecha de hoy para su rol aunque se manipule.
+  async function cargarReporteDia() {
+    const fecha = rol === 'admin' ? document.getElementById('reporte-fecha').value : null;
     try {
       const data = await Reportes.resumenDia(fecha || null);
       document.getElementById('r-total-pedidos').textContent = data.total_pedidos;
@@ -1038,9 +1092,44 @@
       document.getElementById('r-ingresos').textContent = `Bs. ${parseFloat(data.ingresos_total).toFixed(2)}`;
       document.getElementById('r-efectivo').textContent = `Bs. ${parseFloat(data.ingresos_efectivo).toFixed(2)}`;
       document.getElementById('r-qr').textContent = `Bs. ${parseFloat(data.ingresos_qr).toFixed(2)}`;
-      document.getElementById('report-title').textContent = `Resumen del ${fecha || 'Hoy'}`;
+      document.getElementById('report-title').textContent = `Resumen del ${data.fecha}`;
       document.getElementById('report-summary').classList.remove('hidden');
     } catch(e) { showToast('Error cargando reporte: ' + e.message, 'error'); }
+  }
+  document.getElementById('reporte-load-btn').addEventListener('click', cargarReporteDia);
+
+  // ── Arqueo de Turno (cuadre de caja) ────────────────────────────────────────
+  // Disponible para cajero y admin. Combina el monto inicial declarado al
+  // abrir caja (local, en localStorage) con lo recaudado HOY según el
+  // backend. No cierra la caja: solo permite verificar el cuadre en
+  // cualquier momento del turno.
+  document.getElementById('btn-arqueo')?.addEventListener('click', async () => {
+    try {
+      const caja = getCajaState();
+      // Turno actual: acotado desde su hora de apertura, no el día completo.
+      const data = await Reportes.resumenDia(null, caja?.abierta ? caja.apertura_ts : null);
+      const inicial = caja?.abierta ? parseFloat(caja.monto_inicial) : 0;
+      const efectivo = parseFloat(data.ingresos_efectivo);
+      const qr = parseFloat(data.ingresos_qr);
+      const totalCaja = inicial + efectivo + qr;
+
+      document.getElementById('arq-inicial').textContent = caja?.abierta
+        ? `Bs. ${inicial.toFixed(2)}`
+        : 'Caja cerrada';
+      document.getElementById('arq-efectivo').textContent = `Bs. ${efectivo.toFixed(2)}`;
+      document.getElementById('arq-qr').textContent = `Bs. ${qr.toFixed(2)}`;
+      document.getElementById('arq-total').textContent = `Bs. ${totalCaja.toFixed(2)}`;
+      document.getElementById('arq-pedidos').textContent = data.pedidos_pagados;
+
+      showModal('modal-arqueo');
+    } catch (e) {
+      showToast('Error generando el arqueo: ' + e.message, 'error');
+    }
+  });
+
+  // Cerrar modal de arqueo al click en overlay
+  document.getElementById('modal-arqueo')?.addEventListener('click', (e) => {
+    if (e.target.id === 'modal-arqueo') hideModal('modal-arqueo');
   });
 
   // ── HISTORIAL ──────────────────────────────────────────────────────────────
@@ -1073,35 +1162,76 @@
   });
 
   // ── CAJA ───────────────────────────────────────────────────────────────────
-  import('./js/caja.js').then(({ cajaAbierta, abrirCaja, cerrarCaja, getCajaState }) => {
+  // Fuente de verdad única: localStorage (pos_caja_estado, ver caja.js).
+  // refreshCajaUI() sincroniza TODOS los módulos que dependen de ese estado:
+  // la tarjeta de Apertura, la de Cierre, el badge de la barra lateral y
+  // (vía el listener 'storage' más abajo) también el POS si está en otra
+  // pestaña. Se llama siempre con datos frescos de localStorage, nunca cacheados.
+  const cajaMontoInput = document.getElementById('admin-caja-monto');
+  const cajaAbrirBtn   = document.getElementById('admin-btn-abrir-caja');
 
-    function refreshCajaUI() {
-      const state = getCajaState();
-      const abierta = cajaAbierta();
-      const statusEl = document.getElementById('admin-caja-status');
-      const cerrarBtn = document.getElementById('admin-btn-cerrar-caja');
-      const resumenEl = document.getElementById('caja-resumen');
-      const cerradaMsg = document.getElementById('admin-caja-cerrada-msg');
+  function refreshCajaUI() {
+    const state = getCajaState();
+    const abierta = cajaAbierta();
+    const statusEl   = document.getElementById('admin-caja-status');
+    const cerrarBtn  = document.getElementById('admin-btn-cerrar-caja');
+    const resumenEl  = document.getElementById('caja-resumen');
+    const cerradaMsg = document.getElementById('admin-caja-cerrada-msg');
 
+    // Badge de la barra lateral: visible desde cualquier sección
+    const sidebarBadge = document.getElementById('sidebar-caja-badge');
+    if (sidebarBadge) {
       if (abierta && state) {
-        document.getElementById('admin-caja-monto-display').textContent = `Bs. ${parseFloat(state.monto_inicial).toFixed(2)}`;
-        document.getElementById('admin-caja-hora').textContent = state.hora;
-        if (statusEl) statusEl.style.display = 'block';
-        if (cerrarBtn) cerrarBtn.disabled = false;
-        // Cargar ventas del turno para el resumen de cierre
-        Reportes.resumenDia().then(data => {
-          const ventas = parseFloat(data.ingresos_total || 0);
-          const inicial = parseFloat(state.monto_inicial || 0);
-          document.getElementById('cierre-monto-inicial').textContent = `Bs. ${inicial.toFixed(2)}`;
-          document.getElementById('cierre-ventas').textContent = `Bs. ${ventas.toFixed(2)}`;
-          document.getElementById('cierre-total').textContent = `Bs. ${(inicial + ventas).toFixed(2)}`;
-          if (resumenEl) resumenEl.style.display = 'block';
-        }).catch(() => {});
+        sidebarBadge.textContent = `🟢 Caja Abierta — Bs. ${parseFloat(state.monto_inicial).toFixed(2)}`;
+        sidebarBadge.classList.remove('hidden');
       } else {
-        if (statusEl) statusEl.style.display = 'none';
-        if (cerrarBtn) cerrarBtn.disabled = true;
-        if (resumenEl) resumenEl.style.display = 'none';
+        sidebarBadge.classList.add('hidden');
       }
+    }
+
+    if (abierta && state) {
+      // ── Tarjeta de Apertura: bloqueada, mostrando el monto con el que se abrió ──
+      if (cajaMontoInput) {
+        cajaMontoInput.value = parseFloat(state.monto_inicial).toFixed(2);
+        cajaMontoInput.disabled = true;
+      }
+      if (cajaAbrirBtn) {
+        cajaAbrirBtn.disabled = true;
+        cajaAbrirBtn.textContent = '🔓 Caja ya abierta';
+      }
+      document.getElementById('admin-caja-monto-display').textContent = `Bs. ${parseFloat(state.monto_inicial).toFixed(2)}`;
+      document.getElementById('admin-caja-hora').textContent = state.hora;
+      if (statusEl) statusEl.style.display = 'block';
+
+      // ── Tarjeta de Cierre: habilitada ──
+      if (cerrarBtn) cerrarBtn.disabled = false;
+      if (cerradaMsg) cerradaMsg.style.display = 'none';
+
+      // Cargar ventas del TURNO ACTUAL (desde su apertura, no del día completo)
+      // para que no se mezclen ventas de turnos anteriores ya cerrados.
+      Reportes.resumenDia(null, state.apertura_ts || null).then(data => {
+        const ventas = parseFloat(data.ingresos_total || 0);
+        const inicial = parseFloat(state.monto_inicial || 0);
+        document.getElementById('cierre-monto-inicial').textContent = `Bs. ${inicial.toFixed(2)}`;
+        document.getElementById('cierre-ventas').textContent = `Bs. ${ventas.toFixed(2)}`;
+        document.getElementById('cierre-total').textContent = `Bs. ${(inicial + ventas).toFixed(2)}`;
+        if (resumenEl) resumenEl.style.display = 'block';
+      }).catch(() => {});
+    } else {
+      // ── Tarjeta de Apertura: habilitada y libre para un nuevo turno ──
+      if (cajaMontoInput) {
+        cajaMontoInput.disabled = false;
+        if (!state || !state.abierta) cajaMontoInput.value = '';
+      }
+      if (cajaAbrirBtn) {
+        cajaAbrirBtn.disabled = false;
+        cajaAbrirBtn.textContent = '🔓 Abrir Caja';
+      }
+      if (statusEl) statusEl.style.display = 'none';
+
+      // ── Tarjeta de Cierre: bloqueada, no hay turno activo ──
+      if (cerrarBtn) cerrarBtn.disabled = true;
+      if (resumenEl) resumenEl.style.display = 'none';
 
       if (state && !state.abierta && state.hora_cierre) {
         if (cerradaMsg) cerradaMsg.style.display = 'block';
@@ -1110,27 +1240,36 @@
         if (cerradaMsg) cerradaMsg.style.display = 'none';
       }
     }
+  }
 
-    document.getElementById('admin-btn-abrir-caja')?.addEventListener('click', () => {
-      const montoEl = document.getElementById('admin-caja-monto');
-      const monto = parseFloat(montoEl?.value || 0);
-      if (monto < 0) { showToast('Ingresa un monto válido', 'error'); return; }
-      abrirCaja(monto);
-      showToast(`✅ Caja abierta con Bs. ${monto.toFixed(2)}`, 'success');
-      refreshCajaUI();
-    });
-
-    document.getElementById('admin-btn-cerrar-caja')?.addEventListener('click', () => {
-      if (!confirm('¿Cerrar caja y finalizar turno? Esta acción no se puede deshacer.')) return;
-      cerrarCaja();
-      showToast('🔒 Caja cerrada correctamente', 'success');
-      refreshCajaUI();
-    });
-
-    // Refrescar UI de caja al cargar el admin
+  cajaAbrirBtn?.addEventListener('click', () => {
+    const monto = parseFloat(cajaMontoInput?.value || 0);
+    if (monto < 0) { showToast('Ingresa un monto válido', 'error'); return; }
+    abrirCaja(monto);
+    showToast(`✅ Caja abierta con Bs. ${monto.toFixed(2)}`, 'success');
     refreshCajaUI();
-    window.refreshCajaUI = refreshCajaUI;
   });
+
+  document.getElementById('admin-btn-cerrar-caja')?.addEventListener('click', () => {
+    if (!confirm('¿Cerrar caja y finalizar turno? Esta acción no se puede deshacer.')) return;
+    cerrarCaja();
+    showToast('🔒 Caja cerrada correctamente', 'success');
+    refreshCajaUI();
+  });
+
+  // Sincronización en tiempo real entre pestañas/módulos: si el POS (u otra
+  // pestaña del panel) abre o cierra la caja, este evento se dispara solo y
+  // refresca la vista sin necesidad de recargar la página.
+  window.addEventListener('storage', (e) => {
+    if (e.key === 'pos_caja_estado') refreshCajaUI();
+  });
+  // Refresco extra al volver a esta pestaña (cubre casos donde 'storage'
+  // no llega, p.ej. si el cambio ocurrió en la misma pestaña vía otra vista).
+  window.addEventListener('focus', refreshCajaUI);
+
+  // Refrescar UI de caja al cargar el admin (badge + tarjetas)
+  refreshCajaUI();
+  window.refreshCajaUI = refreshCajaUI;
 
   // ── ADMINISTRAR PERSONAL ───────────────────────────────────────────────────
 

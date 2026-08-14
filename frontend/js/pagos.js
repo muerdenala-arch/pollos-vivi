@@ -35,9 +35,6 @@ export function initPagos() {
   // Botón confirmar efectivo
   document.getElementById('confirm-efectivo-btn')?.addEventListener('click', confirmarEfectivo);
 
-  // Monto recibido → calcular cambio en tiempo real
-  document.getElementById('monto-recibido-input')?.addEventListener('input', calcularCambio);
-
   // Botón "Confirmar Pago QR" — registra el pago directamente sin webhook
   document.getElementById('btn-confirmar-pago-qr')?.addEventListener('click', confirmarPagoQRManual);
 
@@ -153,43 +150,15 @@ async function iniciarPagoEfectivo() {
   const totalEl = document.getElementById('efectivo-total');
   if (totalEl) totalEl.textContent = `Bs. ${total.toFixed(2)}`;
 
-  const input = document.getElementById('monto-recibido-input');
-  if (input) { input.value = ''; }
-
-  const cambioEl = document.getElementById('efectivo-cambio-section');
-  if (cambioEl) cambioEl.classList.add('hidden');
-
   const confirmBtn = document.getElementById('confirm-efectivo-btn');
-  if (confirmBtn) confirmBtn.disabled = true;
+  if (confirmBtn) confirmBtn.disabled = false;
 
   showModal('modal-efectivo');
-  // Focus en el input
-  setTimeout(() => input?.focus(), 120);
-}
-
-function calcularCambio() {
-  const input = document.getElementById('monto-recibido-input');
-  const cambioSection = document.getElementById('efectivo-cambio-section');
-  const cambioEl = document.getElementById('cambio-amount');
-  const confirmBtn = document.getElementById('confirm-efectivo-btn');
-
-  const monto = parseFloat(input?.value || 0);
-  const total = getCartTotal();
-
-  if (monto >= total) {
-    const cambio = monto - total;
-    if (cambioEl) cambioEl.textContent = `Bs. ${cambio.toFixed(2)}`;
-    if (cambioSection) cambioSection.classList.remove('hidden');
-    if (confirmBtn) confirmBtn.disabled = false;
-  } else {
-    if (cambioSection) cambioSection.classList.add('hidden');
-    if (confirmBtn) confirmBtn.disabled = true;
-  }
 }
 
 async function confirmarEfectivo() {
-  const input = document.getElementById('monto-recibido-input');
-  const monto = parseFloat(input?.value || 0);
+  // Cobro directo por el total exacto, sin declarar monto recibido ni cambio.
+  const monto = getCartTotal();
   const confirmBtn = document.getElementById('confirm-efectivo-btn');
 
   try {

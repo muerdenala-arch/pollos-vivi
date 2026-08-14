@@ -22,7 +22,13 @@ function saveSession(data) {
 }
 
 function logout() {
-  localStorage.clear();
+  // Solo se borran las claves de sesión/autenticación. El estado de caja
+  // (pos_caja_estado, ver caja.js) NO se toca: la caja debe seguir ABIERTA
+  // aunque el usuario cierre sesión, se recargue la página o se pierda la
+  // conexión — únicamente se cierra con el botón manual de "Cierre de Caja".
+  localStorage.removeItem('pos_token');
+  localStorage.removeItem('pos_rol');
+  localStorage.removeItem('pos_nombre');
   window.location.href = '/static/login.html';
 }
 
@@ -172,10 +178,17 @@ const Pagos = {
 // ─── Reportes ─────────────────────────────────────────────────────────────────
 
 const Reportes = {
-  async resumenDia(fecha = null) {
-    let url = '/api/v1/reportes/ventas/dia';
-    if (fecha) url += `?fecha=${fecha}`;
-    return apiFetch(url);
+  /**
+   * @param {string|null} fecha - YYYY-MM-DD (solo admin puede elegir otra que no sea hoy).
+   * @param {string|null} desde - Timestamp ISO de apertura del turno actual. Si se pasa,
+   *   el resumen queda acotado a SOLO ese turno (no mezcla turnos ya cerrados el mismo día).
+   */
+  async resumenDia(fecha = null, desde = null) {
+    const params = new URLSearchParams();
+    if (fecha) params.set('fecha', fecha);
+    if (desde) params.set('desde', desde);
+    const qs = params.toString();
+    return apiFetch(`/api/v1/reportes/ventas/dia${qs ? '?' + qs : ''}`);
   },
   async historialPedidos(params = {}) {
     const q = new URLSearchParams(params).toString();
