@@ -53,6 +53,11 @@ echo.
 echo  Presiona Ctrl+C para detener el servidor.
 echo.
 
-python -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+:: NOTA: sin --reload (modo produccion). El watcher de --reload vigilaba
+:: TODA la carpeta backend\, incluyendo backend\venv\ (miles de archivos),
+:: gastando CPU/disco de fondo sin necesidad en el dia a dia del negocio.
+:: Si vas a programar y quieres que el servidor se reinicie solo al guardar
+:: cambios, usa: python -m uvicorn app.main:app --reload --reload-dir app --host 0.0.0.0 --port 8000
+python -m uvicorn app.main:app --host 0.0.0.0 --port 8000
 
 pause

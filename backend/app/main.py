@@ -47,6 +47,23 @@ async def lifespan(app: FastAPI):
     print("[--] Sistema POS apagado.")
 
 
+class CachedStaticFiles(StaticFiles):
+    """
+    StaticFiles con Cache-Control. Evita que el navegador tenga que volver a
+    pedir el logo, el QR de pago, el CSS y el JS en cada navegación entre
+    páginas (login -> index -> admin son recargas completas de página).
+    """
+
+    def __init__(self, *args, cache_max_age: int = 3600, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._cache_max_age = cache_max_age
+
+    def file_response(self, *args, **kwargs):
+        response = super().file_response(*args, **kwargs)
+        response.headers.setdefault("Cache-Control", f"public, max-age={self._cache_max_age}")
+        return response
+
+
 app = FastAPI(
     title="Sistema POS — Pollo & Salchipapas",
     description="API REST + WebSocket para gestión de punto de venta. Ing. Rodrigo Zambrana Martinez.",
@@ -76,11 +93,11 @@ app.add_middleware(GZipMiddleware, minimum_size=1024)
 # ─── Archivos estáticos ───────────────────────────────────────────────────────
 frontend_path = Path(__file__).parent.parent.parent / "frontend"
 if frontend_path.exists():
-    app.mount("/static", StaticFiles(directory=str(frontend_path)), name="static")
+    app.mount("/static", CachedStaticFiles(directory=str(frontend_path), cache_max_age=3600), name="static")
 
 uploads_path = Path(settings.upload_dir)
 uploads_path.mkdir(parents=True, exist_ok=True)
-app.mount("/uploads", StaticFiles(directory=str(uploads_path)), name="uploads")
+app.mount("/uploads", CachedStaticFiles(directory=str(uploads_path), cache_max_age=300), name="uploads")
 
 # ─── Routers ──────────────────────────────────────────────────────────────────
 app.include_router(auth.router)
