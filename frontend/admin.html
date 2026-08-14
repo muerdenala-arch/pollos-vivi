@@ -46,9 +46,12 @@
       <span class="nav-icon">🍗</span> Productos
     </button>
 
-    <div class="nav-section-title" data-admin-only>Pagos</div>
+    <div class="nav-section-title" data-admin-only>Sistema</div>
     <button class="nav-item" id="nav-qr-config" data-section="qr-config" data-admin-only>
       <span class="nav-icon">📱</span> Configurar QR
+    </button>
+    <button class="nav-item" id="nav-ticket-config" data-section="ticket-config" data-admin-only>
+      <span class="nav-icon">🧾</span> Configurar Ticket
     </button>
 
     <div class="nav-section-title">Reportes</div>
@@ -374,6 +377,100 @@
       </div>
     </section>
 
+    <!-- Configurar Ticket -->
+    <section class="admin-section" id="section-ticket-config">
+      <div style="display:grid;grid-template-columns:1fr 340px;gap:var(--space-6);align-items:start;">
+        
+        <!-- Formulario de Configuración -->
+        <div>
+          <div class="section-toolbar">
+            <h2 class="section-toolbar-title">Diseño del Ticket de Venta</h2>
+          </div>
+          <div class="form-card">
+            <form id="form-ticket-config" style="display:flex;flex-direction:column;gap:var(--space-4);">
+              <div class="form-group">
+                <label>Nombre del Local</label>
+                <input type="text" id="t-nombre" required class="input" placeholder="Ej. Pollos Vivi">
+              </div>
+              <div class="form-group">
+                <label>Dirección</label>
+                <input type="text" id="t-direccion" required class="input" placeholder="Ej. Av. Principal #123">
+              </div>
+              <div class="form-group">
+                <label>Teléfono</label>
+                <input type="text" id="t-telefono" required class="input" placeholder="Ej. 70000000">
+              </div>
+              <div class="form-group">
+                <label>Mensaje Pie de Página</label>
+                <textarea id="t-pie" required class="input" rows="2" placeholder="Ej. ¡Gracias por su preferencia!"></textarea>
+              </div>
+              <div class="form-group">
+                <label>Ancho del Papel (mm)</label>
+                <select id="t-ancho" class="input">
+                  <option value="58">58 mm (Predeterminado - 5.5cm aprox)</option>
+                  <option value="80">80 mm (Ticket ancho)</option>
+                </select>
+                <small style="color:var(--color-text-3);margin-top:var(--space-1);display:block;">El sistema usará este valor para formatear la vista previa y la impresión.</small>
+              </div>
+              <div class="form-actions">
+                <button type="submit" class="btn btn-primary" id="btn-save-ticket">Guardar Configuración</button>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        <!-- Vista Previa en Vivo -->
+        <div>
+          <h3 style="font-size:var(--font-size-sm);font-weight:700;color:var(--color-text-2);margin-bottom:var(--space-3);text-transform:uppercase;letter-spacing:0.05em;">Vista Previa (Tiempo Real)</h3>
+          
+          <div id="ticket-preview-container" style="background:#fff;color:#000;padding:20px;border-radius:var(--radius-sm);box-shadow:0 10px 25px rgba(0,0,0,0.5);font-family:monospace;width:280px;margin:0 auto;transition:width 0.3s ease;">
+            
+            <div style="text-align:center;margin-bottom:15px;">
+              <h2 id="prev-nombre" style="margin:0;font-size:1.2rem;font-weight:bold;text-transform:uppercase;">POLLOS VIVI</h2>
+              <div id="prev-direccion" style="font-size:0.8rem;margin-top:4px;">Av. Principal #123</div>
+              <div id="prev-telefono" style="font-size:0.8rem;">Tel: 70000000</div>
+              <div style="font-size:0.8rem;margin-top:4px;">Fecha: 14/08/2026 15:30</div>
+            </div>
+
+            <div style="text-align:center;border-top:1px dashed #000;border-bottom:1px dashed #000;padding:8px 0;margin-bottom:15px;">
+              <div style="font-size:0.9rem;">TICKET NO.</div>
+              <div style="font-size:1.6rem;font-weight:bold;">#15</div>
+            </div>
+
+            <div style="margin-bottom:10px;">
+              <div style="display:flex;justify-content:space-between;font-size:0.85rem;font-weight:bold;border-bottom:1px solid #000;padding-bottom:2px;margin-bottom:4px;">
+                <span>CANT DESCRIPCION</span>
+                <span>TOTAL</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;font-size:0.85rem;margin-bottom:2px;">
+                <span>1x Cuarto Broaster</span>
+                <span>Bs 20.00</span>
+              </div>
+              <div style="font-size:0.75rem;padding-left:15px;color:#333;margin-bottom:4px;">- Pecho</div>
+              <div style="display:flex;justify-content:space-between;font-size:0.85rem;margin-bottom:2px;">
+                <span>2x Gaseosa Personal</span>
+                <span>Bs 10.00</span>
+              </div>
+            </div>
+
+            <div style="border-top:1px dashed #000;padding-top:8px;margin-bottom:15px;">
+              <div style="display:flex;justify-content:space-between;font-size:1.1rem;font-weight:bold;">
+                <span>TOTAL:</span>
+                <span>Bs. 30.00</span>
+              </div>
+              <div style="text-align:right;font-size:0.85rem;margin-top:4px;">
+                Pago: <span style="font-weight:bold;">EFECTIVO</span>
+              </div>
+            </div>
+
+            <div id="prev-pie" style="text-align:center;font-size:0.85rem;white-space:pre-wrap;">¡Gracias por su preferencia!</div>
+
+          </div>
+        </div>
+
+      </div>
+    </section>
+
     <!-- Reportes: Ventas del Día -->
     <section class="admin-section" id="section-reportes">
       <div class="filters-bar">
@@ -494,7 +591,7 @@
 
 <script type="module">
   import { requireAuth, showToast, estadoBadge, formatFecha, formatBs } from './js/utils.js';
-  import { Categorias, Presas, Productos, Reportes, logout } from './js/api.js';
+  import { Categorias, Presas, Productos, Reportes, TicketConfig, logout } from './js/api.js';
 
   // Guard: cualquier usuario autenticado puede entrar; el rol decide qué ve
   if (!requireAuth()) throw new Error('No autenticado');
@@ -532,7 +629,7 @@
 
   const pageTitles = {
     dashboard: 'Panel General', categorias: 'Categorías', presas: 'Presas',
-    productos: 'Productos', 'qr-config': 'Configurar QR',
+    productos: 'Productos', 'qr-config': 'Configurar QR', 'ticket-config': 'Configurar Ticket',
     reportes: 'Ventas del Día', historial: 'Historial de Pedidos',
     caja: 'Apertura / Cierre de Caja',
     personal: 'Administrar Personal',
@@ -550,9 +647,76 @@
       if (section === 'categorias') loadCategorias();
       if (section === 'presas') loadPreras();
       if (section === 'productos') loadProductos();
+      if (section === 'ticket-config') loadTicketConfig();
       if (section === 'caja') refreshCajaUI();
       if (section === 'personal') loadPersonal();
     });
+  });
+
+  // ─── Lógica: Configurar Ticket ──────────────────────────────────────────────
+
+  async function loadTicketConfig() {
+    try {
+      const config = await TicketConfig.obtener();
+      document.getElementById('t-nombre').value = config.nombre_local || '';
+      document.getElementById('t-direccion').value = config.direccion || '';
+      document.getElementById('t-telefono').value = config.telefono || '';
+      document.getElementById('t-pie').value = config.pie_pagina || '';
+      document.getElementById('t-ancho').value = config.ancho_papel || '58';
+      updateTicketPreview();
+    } catch (err) {
+      console.error('Error al cargar config de ticket', err);
+    }
+  }
+
+  function updateTicketPreview() {
+    const nombre = document.getElementById('t-nombre').value || 'Nombre Local';
+    const direccion = document.getElementById('t-direccion').value || 'Dirección';
+    const telefono = document.getElementById('t-telefono').value || 'Teléfono';
+    const pie = document.getElementById('t-pie').value || 'Pie de página';
+    const ancho = document.getElementById('t-ancho').value;
+
+    document.getElementById('prev-nombre').textContent = nombre.toUpperCase();
+    document.getElementById('prev-direccion').textContent = direccion;
+    document.getElementById('prev-telefono').textContent = 'Tel: ' + telefono;
+    document.getElementById('prev-pie').textContent = pie;
+
+    const previewContainer = document.getElementById('ticket-preview-container');
+    if (ancho === '80') {
+      previewContainer.style.width = '350px';
+    } else {
+      previewContainer.style.width = '280px';
+    }
+  }
+
+  // Escuchar cambios en vivo
+  ['t-nombre', 't-direccion', 't-telefono', 't-pie', 't-ancho'].forEach(id => {
+    document.getElementById(id).addEventListener('input', updateTicketPreview);
+  });
+
+  document.getElementById('form-ticket-config').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById('btn-save-ticket');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner" style="width:16px;height:16px;"></span> Guardando...';
+
+    const data = {
+      nombre_local: document.getElementById('t-nombre').value,
+      direccion: document.getElementById('t-direccion').value,
+      telefono: document.getElementById('t-telefono').value,
+      pie_pagina: document.getElementById('t-pie').value,
+      ancho_papel: document.getElementById('t-ancho').value,
+    };
+
+    try {
+      await TicketConfig.guardar(data);
+      showToast('Configuración guardada correctamente', 'success');
+    } catch (err) {
+      showToast(err.message, 'error');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Guardar Configuración';
+    }
   });
 
   // ── DASHBOARD ──────────────────────────────────────────────────────────────

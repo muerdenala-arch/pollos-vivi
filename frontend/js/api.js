@@ -183,7 +183,14 @@ const Reportes = {
   },
 };
 
+// ─── Configuración Ticket ─────────────────────────────────────────────────────
+
+const TicketConfig = {
+  async obtener() { return apiFetch('/api/v1/config/ticket'); },
+  async guardar(data) { return apiFetch('/api/v1/config/ticket', { method: 'POST', body: JSON.stringify(data) }); },
+};
+
 export {
   API_BASE, getToken, saveSession, logout, authHeaders,
-  Auth, Usuarios, Categorias, Presas, Productos, Pedidos, Pagos, Reportes,
+  Auth, Usuarios, Categorias, Presas, Productos, Pedidos, Pagos, Reportes, TicketConfig,
 };

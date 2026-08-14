@@ -22,7 +22,7 @@ from .config import get_settings
 from .database import engine
 from .models import Base
 from .services.ws_manager import manager
-from .routers import auth, categorias, productos, pedidos, pagos, webhooks, reportes
+from .routers import auth, categorias, productos, pedidos, pagos, webhooks, reportes, config
 
 settings = get_settings()
 
@@ -90,6 +90,7 @@ app.include_router(pedidos.router)
 app.include_router(pagos.router)
 app.include_router(webhooks.router)
 app.include_router(reportes.router)
+app.include_router(config.router)
 
 
 # ─── WebSocket Endpoints ──────────────────────────────────────────────────────

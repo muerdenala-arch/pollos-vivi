@@ -224,3 +224,12 @@ class ResumenVentasResponse(BaseModel):
     ingresos_total: Decimal
     ingresos_efectivo: Decimal
     ingresos_qr: Decimal
+
+# ─── Configuración ──────────────────────────────────────────────────────────
+
+class TicketConfig(BaseModel):
+    nombre_local: str = Field(..., max_length=100)
+    direccion: str = Field(..., max_length=200)
+    telefono: str = Field(..., max_length=50)
+    pie_pagina: str = Field(..., max_length=200)
+    ancho_papel: str = Field(..., max_length=10)

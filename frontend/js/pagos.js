@@ -10,6 +10,7 @@ import { showModal, hideModal, showToast, showPaidFlash, formatBs } from './util
 import { posWS } from './websocket.js';
 import { API_BASE } from './api.js';
 import { cajaAbierta } from './caja.js';
+import { imprimirTicket } from './ticket.js';
 
 let currentPedidoId = null;
 
@@ -231,6 +232,13 @@ function onPagoConfirmado(data) {
 
   const estadoEl = document.getElementById('pedido-estado');
   if (estadoEl) estadoEl.innerHTML = `<span class="badge badge-success">✅ PAGADO</span>`;
+
+  // Imprimir ticket automáticamente sin bloquear el flujo visual
+  Pedidos.obtener(data.pedido_id)
+    .then(pedidoCompleto => {
+      imprimirTicket(pedidoCompleto, data.metodo);
+    })
+    .catch(err => console.error("No se pudo obtener pedido para imprimir", err));
 
   setTimeout(() => {
     hideModal('modal-qr');
