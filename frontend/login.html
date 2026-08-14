@@ -76,11 +76,10 @@
     const errorEl  = document.getElementById('login-error');
     const btn      = document.getElementById('login-btn');
 
-    // Si ya hay sesión activa en localStorage → redirigir según rol
+    // Si ya hay sesión activa en localStorage → redirigir al panel (ambos roles)
     const token = localStorage.getItem('pos_token');
     if (token) {
-      const rol = localStorage.getItem('pos_rol');
-      window.location.href = rol === 'admin' ? '/static/admin.html' : '/static/index.html';
+      window.location.href = '/static/admin.html';
     }
 
     form.addEventListener('submit', async (e) => {
@@ -96,10 +95,8 @@
         const data = await Auth.login(username, password);
         saveSession(data);
 
-        // Redirigir según rol: admin → panel admin, cajero → POS
-        window.location.href = data.rol === 'admin'
-          ? '/static/admin.html'
-          : '/static/index.html';
+        // Ambos roles van al admin.html — el cajero ve la vista limitada
+        window.location.href = '/static/admin.html';
 
       } catch (err) {
         errorEl.textContent = err.message || 'Usuario o contraseña incorrectos';

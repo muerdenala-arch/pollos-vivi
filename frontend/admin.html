@@ -25,18 +25,18 @@
       </div>
     </div>
 
-    <div class="nav-section-title">Panel</div>
-    <button class="nav-item active" id="nav-dashboard" data-section="dashboard">
+    <div class="nav-section-title" data-admin-only>Panel</div>
+    <button class="nav-item active" id="nav-dashboard" data-section="dashboard" data-admin-only>
       <span class="nav-icon">📊</span> Dashboard
     </button>
 
-    <div class="nav-section-title">Personal</div>
-    <button class="nav-item" id="nav-personal" data-section="personal">
+    <div class="nav-section-title" data-admin-only>Personal</div>
+    <button class="nav-item" id="nav-personal" data-section="personal" data-admin-only>
       <span class="nav-icon">👥</span> Administrar Personal
     </button>
 
     <div class="nav-section-title">Catálogo</div>
-    <button class="nav-item" id="nav-categorias" data-section="categorias">
+    <button class="nav-item" id="nav-categorias" data-section="categorias" data-cajero-default>
       <span class="nav-icon">🏷️</span> Categorías
     </button>
     <button class="nav-item" id="nav-presas" data-section="presas">
@@ -46,8 +46,8 @@
       <span class="nav-icon">🍗</span> Productos
     </button>
 
-    <div class="nav-section-title">Pagos</div>
-    <button class="nav-item" id="nav-qr-config" data-section="qr-config">
+    <div class="nav-section-title" data-admin-only>Pagos</div>
+    <button class="nav-item" id="nav-qr-config" data-section="qr-config" data-admin-only>
       <span class="nav-icon">📱</span> Configurar QR
     </button>
 
@@ -493,18 +493,40 @@
 <div id="toast-container" class="toast-container"></div>
 
 <script type="module">
-  import { requireAdmin, showToast, estadoBadge, formatFecha, formatBs } from './js/utils.js';
+  import { requireAuth, showToast, estadoBadge, formatFecha, formatBs } from './js/utils.js';
   import { Categorias, Presas, Productos, Reportes, logout } from './js/api.js';
 
-  // Guard de rol admin
-  if (!requireAdmin()) throw new Error('Acceso denegado');
+  // Guard: cualquier usuario autenticado puede entrar; el rol decide qué ve
+  if (!requireAuth()) throw new Error('No autenticado');
 
-  const nombre = localStorage.getItem('pos_nombre') || 'Admin';
+  const rol    = localStorage.getItem('pos_rol') || 'cajero';
+  const nombre = localStorage.getItem('pos_nombre') || 'Usuario';
   document.getElementById('user-name').textContent = nombre;
   document.getElementById('user-avatar').textContent = nombre[0].toUpperCase();
   document.getElementById('logout-btn').addEventListener('click', () => {
     if (confirm('¿Cerrar sesión?')) logout();
   });
+
+  // ── Visibilidad según Rol ────────────────────────────────────────────────────
+  // Cajero: oculta Dashboard, Personal, Configurar QR. Admin: ve todo.
+  if (rol !== 'admin') {
+    // Ocultar todos los elementos marcados como admin-only
+    document.querySelectorAll('[data-admin-only]').forEach(el => {
+      el.style.display = 'none';
+    });
+    // El Dashboard no debe ser la sección activa para cajero
+    document.getElementById('section-dashboard')?.classList.remove('active');
+    document.getElementById('nav-dashboard')?.classList.remove('active');
+    // Activar Categorías como sección por defecto
+    const defBtn = document.querySelector('[data-cajero-default]');
+    if (defBtn) {
+      defBtn.classList.add('active');
+      document.getElementById(`section-${defBtn.dataset.section}`)?.classList.add('active');
+      document.getElementById('page-title').textContent = 'Categorías';
+      // Cargar datos de la sección por defecto
+      setTimeout(() => loadCategorias(), 0);
+    }
+  }
 
   // ── Navegación del Sidebar ────────────────────────────────────────────────
 
