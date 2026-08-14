@@ -8,8 +8,99 @@
   <link rel="stylesheet" href="css/main.css">
   <link rel="stylesheet" href="css/pos.css">
   <link rel="stylesheet" href="css/animations.css">
+  <style>
+    /* ── Overlay bloqueo de caja ─────────────────────────────── */
+    #caja-lock-overlay {
+      position: fixed; inset: 0; z-index: 9000;
+      background: rgba(12,7,3,0.92);
+      backdrop-filter: blur(8px);
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: var(--space-6);
+    }
+    #caja-lock-overlay.hidden { display: none !important; }
+    .caja-lock-card {
+      background: linear-gradient(160deg, var(--color-bg-2), var(--color-bg-3));
+      border: 1px solid var(--color-border-2);
+      border-radius: var(--radius-2xl);
+      padding: var(--space-10) var(--space-8);
+      text-align: center;
+      max-width: 420px; width: 90%;
+      box-shadow: var(--shadow-lg);
+    }
+    .caja-lock-icon { font-size: 4rem; margin-bottom: var(--space-4); }
+    .caja-lock-title {
+      font-family: var(--font-display);
+      font-size: var(--font-size-2xl);
+      font-weight: 800; letter-spacing: -0.02em;
+      margin-bottom: var(--space-2);
+    }
+    .caja-lock-sub { color: var(--color-text-2); font-size: var(--font-size-sm); margin-bottom: var(--space-6); }
+    .caja-monto-input {
+      font-size: 2rem; font-weight: 700;
+      text-align: center; width: 100%;
+      background: var(--color-bg-3);
+      border: 2px solid var(--color-border-2);
+      border-radius: var(--radius-lg);
+      padding: var(--space-4);
+      color: var(--color-accent-2);
+      outline: none;
+      transition: border-color 0.2s;
+      margin-bottom: var(--space-4);
+    }
+    .caja-monto-input:focus { border-color: var(--color-accent); }
+    .btn-abrir-caja {
+      width: 100%;
+      background: linear-gradient(135deg, var(--color-accent), var(--color-accent-dark));
+      color: #fff; font-size: var(--font-size-base); font-weight: 700;
+      padding: var(--space-4); border-radius: var(--radius-lg);
+      border: none; cursor: pointer;
+      box-shadow: 0 4px 18px var(--color-accent-glow);
+      transition: transform 0.15s, box-shadow 0.15s;
+    }
+    .btn-abrir-caja:hover { transform: translateY(-2px); box-shadow: 0 6px 24px var(--color-accent-glow); }
+    .btn-abrir-caja:active { transform: scale(0.97); }
+    .caja-badge {
+      position: fixed; top: 10px; right: 160px;
+      background: var(--color-success-bg);
+      border: 1px solid var(--color-success);
+      color: var(--color-success);
+      border-radius: var(--radius-full);
+      padding: 4px 12px; font-size: var(--font-size-xs);
+      font-weight: 700; z-index: 200;
+    }
+  </style>
 </head>
 <body>
+
+<!-- ══ BLOQUEO: Apertura de Caja (se oculta tras abrir) ══════════════════════ -->
+<div id="caja-lock-overlay">
+  <div class="caja-lock-card">
+    <div class="caja-lock-icon">🔐</div>
+    <div class="caja-lock-title">Apertura de Caja</div>
+    <p class="caja-lock-sub">
+      Ingresa el monto inicial de efectivo en caja para comenzar el turno.<br>
+      No podrás realizar ventas hasta completar este paso.
+    </p>
+    <input
+      type="number"
+      id="caja-monto-inicial"
+      class="caja-monto-input"
+      placeholder="0.00"
+      min="0"
+      step="1"
+    >
+    <div style="font-size:var(--font-size-xs);color:var(--color-text-3);margin-bottom:var(--space-4);">
+      Monto inicial en Bs.
+    </div>
+    <button class="btn-abrir-caja" id="btn-abrir-caja">
+      🔓 Abrir Caja y Comenzar Turno
+    </button>
+  </div>
+</div>
+
+<!-- Badge de caja abierta -->
+<div class="caja-badge hidden" id="caja-badge">🟢 Caja Abierta</div>
 
 <!-- ══ Layout Principal del POS ══════════════════════════════════════════════ -->
 <div class="pos-layout">
@@ -46,7 +137,6 @@
     <aside class="cat-panel">
       <div class="cat-panel-title">Categorías</div>
       <div id="cat-list">
-        <!-- Renderizado por JS -->
         <div style="text-align:center;padding:2rem;color:var(--color-text-3);">
           <div class="spinner" style="margin:0 auto;"></div>
         </div>
@@ -125,37 +215,19 @@
 </div><!-- /pos-layout -->
 
 
-<!-- ══ Modal: Selección de Presa ══════════════════════════════════════════════ -->
-<div class="modal-overlay" id="modal-presa">
-  <div class="modal">
-    <h2 class="modal-title" id="presa-modal-title">Selecciona la presa</h2>
-    <div class="presa-grid" id="presa-options">
-      <!-- Renderizado por JS -->
-    </div>
-    <div class="flex gap-3">
-      <button class="btn btn-ghost w-full" onclick="import('./js/utils.js').then(m=>m.hideModal('modal-presa'))">
-        Cancelar
-      </button>
-      <button class="btn btn-primary w-full" id="presa-confirm-btn" disabled>
-        ✅ Confirmar presa
-      </button>
-    </div>
-  </div>
-</div>
-
-
 <!-- ══ Modal: Pago con QR ═════════════════════════════════════════════════════ -->
 <div class="modal-overlay" id="modal-qr">
   <div class="modal" style="min-width:420px;text-align:center;">
     <h2 class="modal-title">📱 Pago con QR — Pollos Vivi</h2>
 
     <div class="qr-modal-content">
-      <p class="qr-instructions">El cliente debe escanear el QR con su aplicación bancaria.</p>
+      <p class="qr-instructions">Muestra el QR al cliente para que escanee y pague.</p>
       <div class="qr-total">
         <span class="qr-currency">Bs.</span>
         <span id="qr-total-amount">0.00</span>
       </div>
-      <!-- QR Estático del negocio: siempre visible y legible -->
+
+      <!-- QR Estático del negocio -->
       <div style="margin:var(--space-4) auto;background:#fff;border-radius:var(--radius-xl);padding:var(--space-4);display:inline-block;box-shadow:0 0 0 4px var(--color-accent-glow),var(--shadow-accent);">
         <img
           src="/static/qr_pago.jpg"
@@ -164,26 +236,26 @@
           onerror="this.src='/static/uploads/qr_pago.png';this.onerror=null;"
         >
       </div>
-      <!-- QR dinámico (cuando se configure en el admin) -->
-      <img
-        id="qr-image"
-        src=""
-        alt="Código QR de pago dinámico"
-        style="display:none;width:0;height:0;"
-      >
-      <div class="qr-waiting" id="qr-waiting">
-        <div class="spinner"></div>
-        <span>Esperando confirmación de pago...</span>
-      </div>
+
+      <!-- Estado confirmado -->
       <div class="qr-paid hidden" id="qr-paid">
         ✅ ¡PAGO CONFIRMADO!
       </div>
     </div>
 
-    <div class="flex gap-3 mt-6">
+    <!-- Botón principal: el cajero confirma cuando el cliente pagó -->
+    <button
+      class="btn btn-success btn-lg w-full"
+      id="btn-confirmar-pago-qr"
+      style="margin-top:var(--space-5);font-size:var(--font-size-base);"
+    >
+      ✅ Confirmar — Cliente Canceló
+    </button>
+
+    <div class="flex gap-3 mt-4">
       <div style="flex:1;">
         <p style="font-size:var(--font-size-xs);color:var(--color-text-3);margin-bottom:0.5rem;">
-          ¿El cliente tiene comprobante físico?
+          ¿Tiene comprobante físico?
         </p>
         <input type="file" id="comprobante-file" accept="image/*" style="display:none">
         <button class="btn btn-ghost btn-sm w-full" id="btn-comprobante">
@@ -250,6 +322,7 @@
   import { initPOS } from './js/pos.js';
   import { initPagos } from './js/pagos.js';
   import { posWS } from './js/websocket.js';
+  import { cajaAbierta, abrirCaja, getCajaState } from './js/caja.js';
 
   // Guard de autenticación
   if (!requireAuth()) throw new Error('No autenticado');
@@ -266,7 +339,47 @@
     if (confirm('¿Cerrar sesión?')) logout();
   });
 
-  // Inicializar módulos
+  // ── Control de Apertura de Caja ──────────────────────────────────────────
+  const lockOverlay = document.getElementById('caja-lock-overlay');
+  const cajaBadge   = document.getElementById('caja-badge');
+  const montoInput  = document.getElementById('caja-monto-inicial');
+  const btnAbrir    = document.getElementById('btn-abrir-caja');
+
+  function checkCaja() {
+    if (cajaAbierta()) {
+      lockOverlay.classList.add('hidden');
+      cajaBadge.classList.remove('hidden');
+      const state = getCajaState();
+      if (state) cajaBadge.textContent = `🟢 Caja Abierta — Bs. ${parseFloat(state.monto_inicial).toFixed(2)} inicial`;
+    } else {
+      lockOverlay.classList.remove('hidden');
+      cajaBadge.classList.add('hidden');
+    }
+  }
+
+  btnAbrir?.addEventListener('click', () => {
+    const monto = parseFloat(montoInput?.value || 0);
+    if (monto < 0) {
+      montoInput.style.borderColor = 'var(--color-danger)';
+      return;
+    }
+    abrirCaja(monto);
+    checkCaja();
+  });
+
+  montoInput?.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') btnAbrir?.click();
+  });
+
+  // Verificar estado de caja al cargar
+  checkCaja();
+
+  // Focus automático en el campo si la caja no está abierta
+  if (!cajaAbierta()) {
+    setTimeout(() => montoInput?.focus(), 200);
+  }
+
+  // ── Inicializar módulos ──────────────────────────────────────────────────
   await initPOS();
   initPagos();
   posWS.connect();

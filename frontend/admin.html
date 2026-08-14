@@ -54,14 +54,18 @@
       <span class="nav-icon">📋</span> Historial
     </button>
 
-    <div class="admin-sidebar-footer">
-      <button class="nav-item" id="nav-pos" onclick="window.open('/static/index.html','_blank')">
-        <span class="nav-icon">🖥️</span> Abrir POS
-      </button>
-      <button class="nav-item" id="logout-btn">
-        <span class="nav-icon">⎋</span> Cerrar Sesión
-      </button>
-    </div>
+    <div class="nav-section-title">Caja</div>
+    <button class="nav-item" id="nav-caja" data-section="caja">
+      <span class="nav-icon">💰</span> Apertura / Cierre
+    </button>
+
+    <div class="nav-section-title" style="margin-top:auto;">Accesos</div>
+    <button class="nav-item" id="nav-pos" onclick="window.open('/static/index.html','_blank')">
+      <span class="nav-icon">🖥️</span> Abrir POS
+    </button>
+    <button class="nav-item" id="logout-btn">
+      <span class="nav-icon">⎋</span> Cerrar Sesión
+    </button>
   </aside>
 
   <!-- ── Header ───────────────────────────────────────────────────────────── -->
@@ -345,6 +349,52 @@
       </div>
     </section>
 
+    <!-- Apertura / Cierre de Caja -->
+    <section class="admin-section" id="section-caja">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--space-6);max-width:900px;">
+
+        <!-- Apertura -->
+        <div class="card">
+          <h2 style="font-weight:700;margin-bottom:var(--space-2);">🔓 Apertura de Caja</h2>
+          <p class="text-muted text-sm" style="margin-bottom:var(--space-5);">Registra el monto inicial de efectivo antes de iniciar el turno de ventas.</p>
+          <div class="form-group" style="margin-bottom:var(--space-4);">
+            <label class="form-label">Monto inicial en caja (Bs.)</label>
+            <input class="input-field" type="number" id="admin-caja-monto" placeholder="0.00" min="0" step="1" style="font-size:1.5rem;text-align:center;font-weight:700;">
+          </div>
+          <button class="btn btn-success btn-lg w-full" id="admin-btn-abrir-caja">
+            🔓 Abrir Caja
+          </button>
+          <div id="admin-caja-status" style="margin-top:var(--space-4);display:none;">
+            <div class="badge badge-success" style="font-size:var(--font-size-sm);padding:var(--space-2) var(--space-4);">
+              ✅ Caja abierta con <strong id="admin-caja-monto-display">Bs. 0.00</strong> — <span id="admin-caja-hora"></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Cierre -->
+        <div class="card">
+          <h2 style="font-weight:700;margin-bottom:var(--space-2);">🔐 Cierre de Caja</h2>
+          <p class="text-muted text-sm" style="margin-bottom:var(--space-5);">Al cerrar la caja se genera el resumen del turno. Solo disponible si la caja está abierta.</p>
+          <div id="caja-resumen" style="margin-bottom:var(--space-4);display:none;">
+            <div class="report-desglose" style="flex-direction:column;gap:var(--space-3);">
+              <div class="desglose-item"><div class="desglose-label">Monto inicial</div><div class="desglose-value" id="cierre-monto-inicial">Bs. 0.00</div></div>
+              <div class="desglose-item"><div class="desglose-label">Ventas del turno</div><div class="desglose-value text-accent" id="cierre-ventas">Bs. 0.00</div></div>
+              <div class="desglose-item"><div class="desglose-label">Total esperado en caja</div><div class="desglose-value text-success" id="cierre-total">Bs. 0.00</div></div>
+            </div>
+          </div>
+          <button class="btn btn-danger btn-lg w-full" id="admin-btn-cerrar-caja" disabled>
+            🔐 Cerrar Caja y Generar Reporte
+          </button>
+          <div id="admin-caja-cerrada-msg" style="display:none;margin-top:var(--space-4);">
+            <div class="badge badge-danger" style="font-size:var(--font-size-sm);padding:var(--space-2) var(--space-4);">
+              🔒 Caja cerrada a las <span id="admin-caja-hora-cierre"></span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
   </main><!-- /admin-content -->
 </div><!-- /admin-layout -->
 
@@ -369,7 +419,9 @@
 
   const pageTitles = {
     dashboard: 'Dashboard', categorias: 'Categorías', presas: 'Presas',
-    productos: 'Productos', 'qr-config': 'Configurar QR', reportes: 'Ventas del Día', historial: 'Historial de Pedidos',
+    productos: 'Productos', 'qr-config': 'Configurar QR',
+    reportes: 'Ventas del Día', historial: 'Historial de Pedidos',
+    caja: 'Apertura / Cierre de Caja',
   };
 
   document.querySelectorAll('.nav-item[data-section]').forEach(btn => {
@@ -384,6 +436,7 @@
       if (section === 'categorias') loadCategorias();
       if (section === 'presas') loadPreras();
       if (section === 'productos') loadProductos();
+      if (section === 'caja') refreshCajaUI();
     });
   });
 
@@ -738,6 +791,66 @@
           <td style="font-size:var(--font-size-xs);color:var(--color-text-3);">${p.detalles?.length || 0} ítem(s)</td>
         </tr>`).join('');
     } catch(e) { showToast('Error: ' + e.message, 'error'); }
+  });
+
+  // ── CAJA ───────────────────────────────────────────────────────────────────
+  import('./js/caja.js').then(({ cajaAbierta, abrirCaja, cerrarCaja, getCajaState }) => {
+
+    function refreshCajaUI() {
+      const state = getCajaState();
+      const abierta = cajaAbierta();
+      const statusEl = document.getElementById('admin-caja-status');
+      const cerrarBtn = document.getElementById('admin-btn-cerrar-caja');
+      const resumenEl = document.getElementById('caja-resumen');
+      const cerradaMsg = document.getElementById('admin-caja-cerrada-msg');
+
+      if (abierta && state) {
+        document.getElementById('admin-caja-monto-display').textContent = `Bs. ${parseFloat(state.monto_inicial).toFixed(2)}`;
+        document.getElementById('admin-caja-hora').textContent = state.hora;
+        if (statusEl) statusEl.style.display = 'block';
+        if (cerrarBtn) cerrarBtn.disabled = false;
+        // Cargar ventas del turno para el resumen de cierre
+        Reportes.resumenDia().then(data => {
+          const ventas = parseFloat(data.ingresos_total || 0);
+          const inicial = parseFloat(state.monto_inicial || 0);
+          document.getElementById('cierre-monto-inicial').textContent = `Bs. ${inicial.toFixed(2)}`;
+          document.getElementById('cierre-ventas').textContent = `Bs. ${ventas.toFixed(2)}`;
+          document.getElementById('cierre-total').textContent = `Bs. ${(inicial + ventas).toFixed(2)}`;
+          if (resumenEl) resumenEl.style.display = 'block';
+        }).catch(() => {});
+      } else {
+        if (statusEl) statusEl.style.display = 'none';
+        if (cerrarBtn) cerrarBtn.disabled = true;
+        if (resumenEl) resumenEl.style.display = 'none';
+      }
+
+      if (state && !state.abierta && state.hora_cierre) {
+        if (cerradaMsg) cerradaMsg.style.display = 'block';
+        document.getElementById('admin-caja-hora-cierre').textContent = state.hora_cierre;
+      } else {
+        if (cerradaMsg) cerradaMsg.style.display = 'none';
+      }
+    }
+
+    document.getElementById('admin-btn-abrir-caja')?.addEventListener('click', () => {
+      const montoEl = document.getElementById('admin-caja-monto');
+      const monto = parseFloat(montoEl?.value || 0);
+      if (monto < 0) { showToast('Ingresa un monto válido', 'error'); return; }
+      abrirCaja(monto);
+      showToast(`✅ Caja abierta con Bs. ${monto.toFixed(2)}`, 'success');
+      refreshCajaUI();
+    });
+
+    document.getElementById('admin-btn-cerrar-caja')?.addEventListener('click', () => {
+      if (!confirm('¿Cerrar caja y finalizar turno? Esta acción no se puede deshacer.')) return;
+      cerrarCaja();
+      showToast('🔒 Caja cerrada correctamente', 'success');
+      refreshCajaUI();
+    });
+
+    // Refrescar UI de caja al cargar el admin
+    refreshCajaUI();
+    window.refreshCajaUI = refreshCajaUI;
   });
 
   // ── Carga inicial ──────────────────────────────────────────────────────────

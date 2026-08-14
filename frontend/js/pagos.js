@@ -1,5 +1,7 @@
 /**
  * pagos.js — Flujos de cobro: QR estático y Efectivo.
+ * v1.2: Botón "Confirmar Pago QR" directo sin espera de webhook.
+ *       Verificación de apertura de caja antes de cualquier pago.
  */
 
 import { Pedidos, Pagos } from './api.js';
@@ -7,22 +9,22 @@ import { cart, getCartTotal, clearCart, setActivePedidoId } from './pos.js';
 import { showModal, hideModal, showToast, showPaidFlash, formatBs } from './utils.js';
 import { posWS } from './websocket.js';
 import { API_BASE } from './api.js';
+import { cajaAbierta } from './caja.js';
 
 let currentPedidoId = null;
 
 // ─── Inicializar Pagos ────────────────────────────────────────────────────────
 
 export function initPagos() {
-  // Escuchar pagos confirmados por WebSocket
+  // Escuchar pagos confirmados por WebSocket (pasarela externa)
   posWS.on('pago_completado', (data) => {
     if (data.pedido_id === currentPedidoId) {
       onPagoConfirmado(data);
     }
   });
 
-  posWS.on('pago_fallido', (data) => {
+  posWS.on('pago_fallido', () => {
     showToast('❌ Pago fallido. Intenta de nuevo.', 'error', 5000);
-    hideModal('modal-qr');
   });
 
   // Botones de cobro
@@ -34,6 +36,9 @@ export function initPagos() {
 
   // Monto recibido → calcular cambio en tiempo real
   document.getElementById('monto-recibido-input')?.addEventListener('input', calcularCambio);
+
+  // Botón "Confirmar Pago QR" — registra el pago directamente sin webhook
+  document.getElementById('btn-confirmar-pago-qr')?.addEventListener('click', confirmarPagoQRManual);
 
   // Botón comprobante manual
   document.getElementById('btn-comprobante')?.addEventListener('click', () => {
@@ -47,6 +52,16 @@ export function initPagos() {
       if (e.target === overlay) hideModal(overlay.id);
     });
   });
+}
+
+// ─── Verificar caja abierta ───────────────────────────────────────────────────
+
+function verificarCaja() {
+  if (!cajaAbierta()) {
+    showToast('⚠️ Debe realizar la Apertura de Caja antes de cobrar.', 'error', 5000);
+    return false;
+  }
+  return true;
 }
 
 // ─── Crear Pedido ─────────────────────────────────────────────────────────────
@@ -65,7 +80,6 @@ async function crearPedidoSiNecesario() {
     currentPedidoId = pedido.id;
     setActivePedidoId(pedido.id);
 
-    // Actualizar número de pedido en UI
     const badge = document.getElementById('order-number');
     if (badge) badge.innerHTML = `Pedido <strong>#${pedido.id}</strong>`;
 
@@ -80,27 +94,27 @@ async function crearPedidoSiNecesario() {
 
 async function iniciarPagoQR() {
   if (cart.length === 0) return;
+  if (!verificarCaja()) return;
 
   try {
     const pedidoId = await crearPedidoSiNecesario();
-    const qrData = await Pagos.iniciarQR(pedidoId);
+    await Pagos.iniciarQR(pedidoId);
 
-    // Mostrar modal QR
+    // Mostrar total en modal QR
+    const total = getCartTotal();
     const totalEl = document.getElementById('qr-total-amount');
-    const qrImg = document.getElementById('qr-image');
-    if (totalEl) totalEl.textContent = `Bs. ${formatBs(qrData.total)}`;
-    if (qrImg) {
-      qrImg.src = `${API_BASE}${qrData.qr_image_url}`;
-      qrImg.style.display = 'block';
+    if (totalEl) totalEl.textContent = total.toFixed(2);
+
+    // Resetear estado del modal
+    document.getElementById('qr-waiting')?.classList.add('hidden');
+    document.getElementById('qr-paid')?.classList.add('hidden');
+    const confirmBtn = document.getElementById('btn-confirmar-pago-qr');
+    if (confirmBtn) {
+      confirmBtn.disabled = false;
+      confirmBtn.classList.remove('hidden');
     }
 
-    // Mostrar estado de espera
-    document.getElementById('qr-waiting')?.classList.remove('hidden');
-    document.getElementById('qr-paid')?.classList.add('hidden');
-
     showModal('modal-qr');
-
-    // Reconectar WS al pedido específico (para pantalla cliente también)
     posWS.connect();
 
   } catch (e) {
@@ -108,10 +122,31 @@ async function iniciarPagoQR() {
   }
 }
 
+// ─── Confirmar pago QR manualmente (el cajero presiona cuando el cliente pagó) ─
+
+async function confirmarPagoQRManual() {
+  if (!currentPedidoId) return;
+  const btn = document.getElementById('btn-confirmar-pago-qr');
+  if (btn) btn.disabled = true;
+
+  try {
+    // Subir comprobante vacío para marcar como pagado, o simplemente
+    // usar el endpoint de efectivo con el total exacto (monto_recibido = total)
+    const total = getCartTotal();
+    await Pagos.registrarEfectivo(currentPedidoId, total, 'QR');
+
+    onPagoConfirmado({ pedido_id: currentPedidoId, metodo: 'QR' });
+  } catch (e) {
+    showToast('Error confirmando pago: ' + e.message, 'error');
+    if (btn) btn.disabled = false;
+  }
+}
+
 // ─── Pago con Efectivo ────────────────────────────────────────────────────────
 
 async function iniciarPagoEfectivo() {
   if (cart.length === 0) return;
+  if (!verificarCaja()) return;
 
   const total = getCartTotal();
   const totalEl = document.getElementById('efectivo-total');
@@ -123,7 +158,12 @@ async function iniciarPagoEfectivo() {
   const cambioEl = document.getElementById('efectivo-cambio-section');
   if (cambioEl) cambioEl.classList.add('hidden');
 
+  const confirmBtn = document.getElementById('confirm-efectivo-btn');
+  if (confirmBtn) confirmBtn.disabled = true;
+
   showModal('modal-efectivo');
+  // Focus en el input
+  setTimeout(() => input?.focus(), 120);
 }
 
 function calcularCambio() {
@@ -160,7 +200,7 @@ async function confirmarEfectivo() {
     onPagoConfirmado({ pedido_id: pedidoId, metodo: 'Efectivo' });
   } catch (e) {
     showToast('Error registrando pago: ' + e.message, 'error');
-    confirmBtn.disabled = false;
+    if (confirmBtn) confirmBtn.disabled = false;
   }
 }
 
@@ -174,7 +214,7 @@ async function subirComprobante(event) {
     showToast('Subiendo comprobante...', 'info');
     await Pagos.subirComprobante(currentPedidoId, file);
     hideModal('modal-qr');
-    onPagoConfirmado({ pedido_id: currentPedidoId, metodo: 'Comprobante' });
+    onPagoConfirmado({ pedido_id: currentPedidoId, metodo: 'QR' });
   } catch (e) {
     showToast('Error subiendo comprobante: ' + e.message, 'error');
   }
@@ -184,21 +224,20 @@ async function subirComprobante(event) {
 
 function onPagoConfirmado(data) {
   showPaidFlash();
-  showToast(`✅ Pedido #${data.pedido_id} PAGADO (${data.metodo})`, 'success', 5000);
+  showToast(`✅ Pedido #${data.pedido_id} PAGADO — ${data.metodo}`, 'success', 4000);
 
-  // Actualizar estado del QR modal si está abierto
   document.getElementById('qr-waiting')?.classList.add('hidden');
   document.getElementById('qr-paid')?.classList.remove('hidden');
 
-  // Actualizar badge de estado en header
   const estadoEl = document.getElementById('pedido-estado');
   if (estadoEl) estadoEl.innerHTML = `<span class="badge badge-success">✅ PAGADO</span>`;
 
   setTimeout(() => {
     hideModal('modal-qr');
+    hideModal('modal-efectivo');
     clearCart();
     currentPedidoId = null;
-  }, 2500);
+  }, 1800);
 }
 
 export { currentPedidoId };
