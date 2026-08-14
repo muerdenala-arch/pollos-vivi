@@ -2,17 +2,36 @@
  * Estilos del Panel de Administración
  */
 
-.admin-layout { display: grid; grid-template-columns: 240px 1fr; grid-template-rows: auto 1fr; min-height: 100vh; }
+/* Bloquear scroll global de la página en el panel admin */
+html, body {
+  height: 100%;
+  overflow: hidden; /* Evita que toda la página haga scroll */
+}
 
-/* Sidebar */
+/* Layout principal: alto fijo = pantalla completa, sin scroll global */
+.admin-layout {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  grid-template-rows: auto 1fr;
+  height: 100vh;        /* Exactamente la pantalla, NO min-height */
+  overflow: hidden;     /* El scroll global queda bloqueado */
+}
+
+/* Sidebar: altura completa, scroll propio, botones siempre abajo */
 .admin-sidebar {
-  grid-row: 1 / -1;
+  grid-row: 1 / -1;           /* Ocupa todas las filas del grid */
+  height: 100vh;              /* Alto fijo igual a la pantalla */
+  position: sticky;
+  top: 0;
   background: var(--color-bg-2);
   border-right: 1px solid var(--color-border);
   padding: var(--space-6) var(--space-4);
-  display: flex; flex-direction: column;
-  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;           /* Scroll propio solo dentro del sidebar */
+  overflow-x: hidden;
   gap: 0;
+  flex-shrink: 0;
 }
 .admin-sidebar-logo { display: flex; align-items: center; gap: var(--space-3); padding: var(--space-2) var(--space-3); margin-bottom: var(--space-8); }
 .admin-sidebar-logo-icon {
@@ -46,12 +65,28 @@
 
 .admin-sidebar-footer { margin-top: auto; padding-top: var(--space-4); border-top: 1px solid var(--color-border); }
 
-/* Header Admin */
-.admin-header { background: var(--color-bg-2); border-bottom: 1px solid var(--color-border); padding: var(--space-4) var(--space-8); display: flex; align-items: center; justify-content: space-between; }
+/* Header Admin: fijo en la parte superior del panel derecho */
+.admin-header {
+  background: var(--color-bg-2);
+  border-bottom: 1px solid var(--color-border);
+  padding: var(--space-4) var(--space-8);
+  display: flex; align-items: center; justify-content: space-between;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  flex-shrink: 0;
+}
 .admin-page-title { font-family: var(--font-display); font-size: var(--font-size-xl); font-weight: 700; letter-spacing: -0.01em; }
 
-/* Contenido principal */
-.admin-content { background: var(--color-bg); padding: var(--space-8); overflow-y: auto; }
+/* Contenido principal: scroll propio, solo el panel derecho se mueve */
+.admin-content {
+  background: var(--color-bg);
+  padding: var(--space-8);
+  overflow-y: auto;    /* Solo este panel hace scroll */
+  overflow-x: hidden;
+  height: 100%;        /* Ocupa el espacio restante del grid */
+  min-height: 0;       /* Necesario para que overflow funcione en flex/grid */
+}
 .admin-section { display: none; }
 .admin-section.active { display: block; animation: fadeInUp 0.25s ease; }
 
