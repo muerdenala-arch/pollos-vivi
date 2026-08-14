@@ -328,11 +328,16 @@
   if (!requireAuth()) throw new Error('No autenticado');
 
   // Mostrar info del usuario en header
-  const nombre = sessionStorage.getItem('pos_nombre') || 'Cajero';
-  const userNameEl = document.getElementById('user-name');
+  const nombre = localStorage.getItem('pos_nombre') || 'Cajero';
+  const rol    = localStorage.getItem('pos_rol') || 'cajero';
+  const userNameEl   = document.getElementById('user-name');
   const userAvatarEl = document.getElementById('user-avatar');
   if (userNameEl) userNameEl.textContent = nombre;
   if (userAvatarEl) userAvatarEl.textContent = nombre[0].toUpperCase();
+
+  // Ocultar boton "Menú Admin" para cajeros (solo admin puede ir al panel)
+  const menuBtn = document.querySelector('.pos-header-actions .btn[onclick]');
+  if (menuBtn && rol !== 'admin') menuBtn.style.display = 'none';
 
   // Logout
   document.getElementById('logout-btn')?.addEventListener('click', () => {

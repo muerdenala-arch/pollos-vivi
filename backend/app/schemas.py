@@ -41,7 +41,18 @@ class UsuarioResponse(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class UsuarioUpdate(BaseModel):
+    nombre: Optional[str] = Field(None, min_length=2, max_length=100)
+    rol: Optional[RolUsuario] = None
+    activo: Optional[bool] = None
+
+
+class PasswordUpdate(BaseModel):
+    nueva_password: str = Field(..., min_length=6)
+
+
 # ─── Categorías ───────────────────────────────────────────────────────────────
+
 
 class CategoriaCreate(BaseModel):
     nombre: str = Field(..., min_length=2, max_length=100)

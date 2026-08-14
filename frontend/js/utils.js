@@ -88,7 +88,7 @@ export function estadoBadge(estado) {
  * Verifica si el usuario está autenticado, si no redirige al login.
  */
 export function requireAuth() {
-  const token = sessionStorage.getItem('pos_token');
+  const token = localStorage.getItem('pos_token');
   if (!token) {
     window.location.href = '/static/login.html';
     return false;
@@ -100,10 +100,10 @@ export function requireAuth() {
  * Verifica si el usuario tiene rol de admin.
  */
 export function requireAdmin() {
-  const rol = sessionStorage.getItem('pos_rol');
+  const rol = localStorage.getItem('pos_rol');
   if (!requireAuth()) return false;
   if (rol !== 'admin') {
-    alert('Acceso restringido: se requiere rol de Administrador.');
+    // Cajero: redirigir al POS en vez de mostrar alert
     window.location.href = '/static/index.html';
     return false;
   }

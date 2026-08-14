@@ -17,7 +17,7 @@
           <img
             src="/static/logo.jpg"
             alt="Logo Pollos Vivi"
-            style="width:80px;height:80px;object-fit:cover;border-radius:var(--radius-xl);box-shadow:0 4px 20px var(--color-accent-glow);"
+            style="width:90px;height:90px;object-fit:cover;border-radius:var(--radius-xl);"
             onerror="this.style.display='none';this.parentNode.innerHTML='🍗';"
           >
         </div>
@@ -62,26 +62,24 @@
       </form>
 
       <div class="login-footer">
-        Pollos Vivi — Broasther y Leña · Sistema POS v1.0
+        Pollos Vivi — Broasther y Leña · Sistema POS v1.1
       </div>
     </div>
   </div>
 
-  <!-- Toast container -->
   <div id="toast-container" class="toast-container"></div>
 
   <script type="module">
     import { Auth, saveSession } from './js/api.js';
-    import { showToast } from './js/utils.js';
 
-    const form = document.getElementById('login-form');
-    const errorEl = document.getElementById('login-error');
-    const btn = document.getElementById('login-btn');
+    const form     = document.getElementById('login-form');
+    const errorEl  = document.getElementById('login-error');
+    const btn      = document.getElementById('login-btn');
 
-    // Si ya hay sesión activa, redirigir según rol
-    const token = sessionStorage.getItem('pos_token');
+    // Si ya hay sesión activa en localStorage → redirigir según rol
+    const token = localStorage.getItem('pos_token');
     if (token) {
-      const rol = sessionStorage.getItem('pos_rol');
+      const rol = localStorage.getItem('pos_rol');
       window.location.href = rol === 'admin' ? '/static/admin.html' : '/static/index.html';
     }
 
@@ -98,18 +96,22 @@
         const data = await Auth.login(username, password);
         saveSession(data);
 
-        // Redirigir según rol
-        if (data.rol === 'admin') {
-          window.location.href = '/static/admin.html';
-        } else {
-          window.location.href = '/static/index.html';
-        }
+        // Redirigir según rol: admin → panel admin, cajero → POS
+        window.location.href = data.rol === 'admin'
+          ? '/static/admin.html'
+          : '/static/index.html';
+
       } catch (err) {
-        errorEl.textContent = err.message;
+        errorEl.textContent = err.message || 'Usuario o contraseña incorrectos';
         errorEl.classList.remove('hidden');
         btn.disabled = false;
         btn.textContent = 'Ingresar al Sistema';
       }
+    });
+
+    // Enter en campo de contraseña
+    document.getElementById('password')?.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') form.requestSubmit();
     });
   </script>
 </body>

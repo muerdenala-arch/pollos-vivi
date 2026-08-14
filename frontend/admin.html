@@ -30,6 +30,11 @@
       <span class="nav-icon">📊</span> Dashboard
     </button>
 
+    <div class="nav-section-title">Personal</div>
+    <button class="nav-item" id="nav-personal" data-section="personal">
+      <span class="nav-icon">👥</span> Administrar Personal
+    </button>
+
     <div class="nav-section-title">Catálogo</div>
     <button class="nav-item" id="nav-categorias" data-section="categorias">
       <span class="nav-icon">🏷️</span> Categorías
@@ -79,6 +84,92 @@
 
   <!-- ── Contenido Principal ───────────────────────────────────────────────── -->
   <main class="admin-content">
+
+    <!-- Administrar Personal -->
+    <section class="admin-section" id="section-personal">
+      <div style="display:grid;grid-template-columns:340px 1fr;gap:var(--space-6);align-items:start;">
+
+        <!-- Formulario: Nuevo usuario -->
+        <div class="card" id="personal-form-card">
+          <h2 style="font-weight:700;margin-bottom:var(--space-5);" id="personal-form-title">
+            ➕ Nuevo Usuario
+          </h2>
+          <input type="hidden" id="personal-edit-id">
+          <div class="form-group">
+            <label class="form-label" for="p-nombre">Nombre completo</label>
+            <input class="input-field" type="text" id="p-nombre" placeholder="Ej. María López">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="p-username">Usuario (único)</label>
+            <input class="input-field" type="text" id="p-username" placeholder="Ej. cajero01" autocomplete="off">
+          </div>
+          <div class="form-group" id="p-password-group">
+            <label class="form-label" for="p-password">Contraseña</label>
+            <input class="input-field" type="password" id="p-password" placeholder="Mínimo 6 caracteres" autocomplete="new-password">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="p-rol">Rol</label>
+            <select class="input-field filter-select" id="p-rol" style="width:100%;">
+              <option value="cajero">🧾 Cajero</option>
+              <option value="admin">🛡️ Administrador</option>
+            </select>
+          </div>
+          <div style="display:flex;gap:var(--space-3);margin-top:var(--space-4);">
+            <button class="btn btn-ghost btn-sm" id="personal-cancel-btn" style="display:none;">Cancelar</button>
+            <button class="btn btn-primary w-full" id="personal-save-btn">✅ Guardar Usuario</button>
+          </div>
+          <div id="personal-form-error" class="login-error hidden" style="margin-top:var(--space-3);"></div>
+        </div>
+
+        <!-- Tabla de Personal -->
+        <div>
+          <div class="section-toolbar" style="margin-bottom:var(--space-4);">
+            <h2 style="font-weight:700;">👥 Personal Registrado</h2>
+            <button class="btn btn-ghost btn-sm" id="personal-reload-btn">🔄 Actualizar</button>
+          </div>
+          <div class="table-wrapper">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Nombre</th>
+                  <th>Usuario</th>
+                  <th>Rol</th>
+                  <th>Estado</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="personal-tbody">
+                <tr>
+                  <td colspan="6" style="text-align:center;color:var(--color-text-3);">
+                    <div class="spinner" style="margin:1rem auto;"></div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal: Cambiar contraseña -->
+      <div id="modal-cambiar-pass" style="display:none;position:fixed;inset:0;z-index:500;background:rgba(0,0,0,0.7);backdrop-filter:blur(4px);align-items:center;justify-content:center;">
+        <div style="background:var(--color-bg-2);border:1px solid var(--color-border-2);border-radius:var(--radius-2xl);padding:var(--space-8);min-width:360px;box-shadow:var(--shadow-lg);">
+          <h3 style="font-weight:700;margin-bottom:var(--space-5);">🔑 Cambiar Contraseña</h3>
+          <input type="hidden" id="pass-usuario-id">
+          <p style="font-size:var(--font-size-sm);color:var(--color-text-2);margin-bottom:var(--space-4);">
+            Cambiando contraseña de: <strong id="pass-usuario-nombre"></strong>
+          </p>
+          <div class="form-group">
+            <label class="form-label">Nueva contraseña (mín. 6 caracteres)</label>
+            <input class="input-field" type="password" id="pass-nueva" placeholder="••••••••" autocomplete="new-password">
+          </div>
+          <div style="display:flex;gap:var(--space-3);margin-top:var(--space-5);">
+            <button class="btn btn-ghost w-full" onclick="document.getElementById('modal-cambiar-pass').style.display='none'">Cancelar</button>
+            <button class="btn btn-primary w-full" id="pass-confirm-btn">✅ Cambiar</button>
+          </div>
+        </div>
+      </div>
+    </section>
 
     <!-- Dashboard -->
     <section class="admin-section active" id="section-dashboard">
@@ -408,7 +499,7 @@
   // Guard de rol admin
   if (!requireAdmin()) throw new Error('Acceso denegado');
 
-  const nombre = sessionStorage.getItem('pos_nombre') || 'Admin';
+  const nombre = localStorage.getItem('pos_nombre') || 'Admin';
   document.getElementById('user-name').textContent = nombre;
   document.getElementById('user-avatar').textContent = nombre[0].toUpperCase();
   document.getElementById('logout-btn').addEventListener('click', () => {
@@ -422,6 +513,7 @@
     productos: 'Productos', 'qr-config': 'Configurar QR',
     reportes: 'Ventas del Día', historial: 'Historial de Pedidos',
     caja: 'Apertura / Cierre de Caja',
+    personal: 'Administrar Personal',
   };
 
   document.querySelectorAll('.nav-item[data-section]').forEach(btn => {
@@ -437,6 +529,7 @@
       if (section === 'presas') loadPreras();
       if (section === 'productos') loadProductos();
       if (section === 'caja') refreshCajaUI();
+      if (section === 'personal') loadPersonal();
     });
   });
 
@@ -853,11 +946,179 @@
     window.refreshCajaUI = refreshCajaUI;
   });
 
+  // ── ADMINISTRAR PERSONAL ───────────────────────────────────────────────────
+
+  import('./js/api.js').then(({ Usuarios }) => {
+    let editingId = null;
+
+    const tbody        = document.getElementById('personal-tbody');
+    const formTitle    = document.getElementById('personal-form-title');
+    const saveBtn      = document.getElementById('personal-save-btn');
+    const cancelBtn    = document.getElementById('personal-cancel-btn');
+    const formError    = document.getElementById('personal-form-error');
+    const passModal    = document.getElementById('modal-cambiar-pass');
+    const passConfirm  = document.getElementById('pass-confirm-btn');
+    const reloadBtn    = document.getElementById('personal-reload-btn');
+
+    function rolBadge(rol) {
+      return rol === 'admin'
+        ? `<span class="badge badge-warning" style="font-size:0.7rem;">🛡️ Admin</span>`
+        : `<span class="badge badge-info" style="font-size:0.7rem;">🧾 Cajero</span>`;
+    }
+
+    async function loadPersonal() {
+      if (!tbody) return;
+      tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;"><div class="spinner" style="margin:1rem auto;"></div></td></tr>`;
+      try {
+        const users = await Usuarios.listar();
+        if (!users.length) {
+          tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:var(--color-text-3);">No hay usuarios registrados</td></tr>`;
+          return;
+        }
+        tbody.innerHTML = users.map(u => `
+          <tr style="${!u.activo ? 'opacity:0.5;' : ''}">
+            <td style="color:var(--color-text-3);">#${u.id}</td>
+            <td style="font-weight:600;">${u.nombre}</td>
+            <td style="font-family:monospace;font-size:0.85rem;color:var(--color-accent);">${u.username}</td>
+            <td>${rolBadge(u.rol)}</td>
+            <td>${u.activo
+              ? `<span class="badge badge-success" style="font-size:0.7rem;">✅ Activo</span>`
+              : `<span class="badge badge-danger" style="font-size:0.7rem;">🔴 Inactivo</span>`}</td>
+            <td>
+              <div style="display:flex;gap:0.4rem;flex-wrap:wrap;">
+                <button class="btn btn-ghost btn-sm" onclick="window.personalEdit(${u.id})" title="Editar">✏️</button>
+                <button class="btn btn-ghost btn-sm" onclick="window.personalPass(${u.id},'${u.nombre.replace(/'/g,'')}')" title="Cambiar contraseña">🔑</button>
+                <button class="btn btn-ghost btn-sm" onclick="window.personalToggle(${u.id},${u.activo})" title="${u.activo ? 'Desactivar' : 'Activar'}" style="color:${u.activo ? 'var(--color-danger)' : 'var(--color-success)'};">
+                  ${u.activo ? '🚫' : '✅'}
+                </button>
+              </div>
+            </td>
+          </tr>`).join('');
+      } catch(e) {
+        tbody.innerHTML = `<tr><td colspan="6" style="color:var(--color-danger);text-align:center;">Error: ${e.message}</td></tr>`;
+      }
+    }
+
+    function resetForm() {
+      editingId = null;
+      document.getElementById('personal-edit-id').value = '';
+      document.getElementById('p-nombre').value = '';
+      document.getElementById('p-username').value = '';
+      document.getElementById('p-password').value = '';
+      document.getElementById('p-rol').value = 'cajero';
+      document.getElementById('p-password-group').style.display = '';
+      document.getElementById('p-username').disabled = false;
+      if (formTitle) formTitle.textContent = '➕ Nuevo Usuario';
+      if (cancelBtn) cancelBtn.style.display = 'none';
+      if (formError) { formError.textContent=''; formError.classList.add('hidden'); }
+    }
+
+    // Guardar (crear o editar)
+    saveBtn?.addEventListener('click', async () => {
+      const nombre   = document.getElementById('p-nombre').value.trim();
+      const username = document.getElementById('p-username').value.trim();
+      const password = document.getElementById('p-password').value;
+      const rol      = document.getElementById('p-rol').value;
+
+      if (!nombre) { showError('Ingresa el nombre completo.'); return; }
+
+      saveBtn.disabled = true;
+      try {
+        if (editingId) {
+          // Editar usuario
+          const payload = { nombre, rol };
+          if (password.length >= 6) await Usuarios.cambiarPassword(editingId, password);
+          await Usuarios.actualizar(editingId, payload);
+          showToast('✅ Usuario actualizado', 'success');
+        } else {
+          // Crear nuevo
+          if (!username || username.length < 3) { showError('Usuario debe tener al menos 3 caracteres.'); return; }
+          if (password.length < 6) { showError('Contraseña debe tener al menos 6 caracteres.'); return; }
+          await Usuarios.crear({ nombre, username, password, rol });
+          showToast('✅ Usuario creado correctamente', 'success');
+        }
+        resetForm();
+        await loadPersonal();
+      } catch(e) {
+        showError(e.message);
+      } finally {
+        saveBtn.disabled = false;
+      }
+    });
+
+    function showError(msg) {
+      if (formError) { formError.textContent = msg; formError.classList.remove('hidden'); }
+    }
+
+    cancelBtn?.addEventListener('click', resetForm);
+    reloadBtn?.addEventListener('click', loadPersonal);
+
+    // Exponer funciones al DOM (usadas en los botones de la tabla)
+    window.personalEdit = async (id) => {
+      try {
+        const users = await Usuarios.listar();
+        const u = users.find(x => x.id === id);
+        if (!u) return;
+        editingId = id;
+        document.getElementById('p-nombre').value = u.nombre;
+        document.getElementById('p-username').value = u.username;
+        document.getElementById('p-username').disabled = true; // username no cambia
+        document.getElementById('p-password').value = '';
+        document.getElementById('p-rol').value = u.rol;
+        document.getElementById('p-password-group').style.display = 'none'; // pass se cambia por separado
+        if (formTitle) formTitle.textContent = '✏️ Editar Usuario';
+        if (cancelBtn) cancelBtn.style.display = '';
+        document.getElementById('personal-form-card')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      } catch(e) { showToast('Error: ' + e.message, 'error'); }
+    };
+
+    window.personalPass = (id, nombre) => {
+      document.getElementById('pass-usuario-id').value = id;
+      document.getElementById('pass-usuario-nombre').textContent = nombre;
+      document.getElementById('pass-nueva').value = '';
+      passModal.style.display = 'flex';
+      setTimeout(() => document.getElementById('pass-nueva')?.focus(), 100);
+    };
+
+    window.personalToggle = async (id, activo) => {
+      const accion = activo ? 'desactivar' : 'activar';
+      if (!confirm(`¿Deseas ${accion} este usuario?`)) return;
+      try {
+        if (activo) await Usuarios.desactivar(id);
+        else await Usuarios.activar(id);
+        showToast(`✅ Usuario ${accion === 'desactivar' ? 'desactivado' : 'activado'}`, 'success');
+        await loadPersonal();
+      } catch(e) { showToast('Error: ' + e.message, 'error'); }
+    };
+
+    passConfirm?.addEventListener('click', async () => {
+      const id = parseInt(document.getElementById('pass-usuario-id').value);
+      const pass = document.getElementById('pass-nueva').value;
+      if (pass.length < 6) { showToast('La contraseña debe tener al menos 6 caracteres.', 'error'); return; }
+      passConfirm.disabled = true;
+      try {
+        await Usuarios.cambiarPassword(id, pass);
+        showToast('✅ Contraseña actualizada', 'success');
+        passModal.style.display = 'none';
+      } catch(e) { showToast('Error: ' + e.message, 'error'); }
+      finally { passConfirm.disabled = false; }
+    });
+
+    // Cerrar modal contraseña con Escape
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && passModal?.style.display === 'flex') passModal.style.display = 'none';
+    });
+
+    // Cargar personal al entrar a la sección
+    window.loadPersonal = loadPersonal;
+  });
+
   // ── Carga inicial ──────────────────────────────────────────────────────────
 
   loadDashboard();
 </script>
 <script src="js/animations.js"></script>
+
 
 </body>
 </html>
