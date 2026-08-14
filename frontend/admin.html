@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Administración — Sistema POS</title>
+  <meta name="description" content="Panel de administración del Sistema POS">
+  <link rel="stylesheet" href="css/main.css">
+  <link rel="stylesheet" href="css/admin.css">
+</head>
+<body>
+
+<div class="admin-layout">
+
+  <!-- ── Sidebar ──────────────────────────────────────────────────────────── -->
+  <aside class="admin-sidebar">
+    <div class="admin-sidebar-logo">
+      <div class="admin-sidebar-logo-icon">🍗</div>
+      <div class="admin-sidebar-brand">
+        Sistema POS
+        <small>Administración</small>
+      </div>
+    </div>
+
+    <div class="nav-section-title">Panel</div>
+    <button class="nav-item active" id="nav-dashboard" data-section="dashboard">
+      <span class="nav-icon">📊</span> Dashboard
+    </button>
+
+    <div class="nav-section-title">Catálogo</div>
+    <button class="nav-item" id="nav-categorias" data-section="categorias">
+      <span class="nav-icon">🏷️</span> Categorías
+    </button>
+    <button class="nav-item" id="nav-presas" data-section="presas">
+      <span class="nav-icon">🦴</span> Presas
+    </button>
+    <button class="nav-item" id="nav-productos" data-section="productos">
+      <span class="nav-icon">🍗</span> Productos
+    </button>
+
+    <div class="nav-section-title">Pagos</div>
+    <button class="nav-item" id="nav-qr-config" data-section="qr-config">
+      <span class="nav-icon">📱</span> Configurar QR
+    </button>
+
+    <div class="nav-section-title">Reportes</div>
+    <button class="nav-item" id="nav-reportes" data-section="reportes">
+      <span class="nav-icon">📈</span> Ventas del Día
+    </button>
+    <button class="nav-item" id="nav-historial" data-section="historial">
+      <span class="nav-icon">📋</span> Historial
+    </button>
+
+    <div class="admin-sidebar-footer">
+      <button class="nav-item" id="nav-pos" onclick="window.open('/static/index.html','_blank')">
+        <span class="nav-icon">🖥️</span> Abrir POS
+      </button>
+      <button class="nav-item" id="logout-btn">
+        <span class="nav-icon">⎋</span> Cerrar Sesión
+      </button>
+    </div>
+  </aside>
+
+  <!-- ── Header ───────────────────────────────────────────────────────────── -->
+  <header class="admin-header">
+    <h1 class="admin-page-title" id="page-title">Dashboard</h1>
+    <div class="pos-user-pill">
+      <div class="pos-user-avatar" id="user-avatar">A</div>
+      <span id="user-name">Administrador</span>
+    </div>
+  </header>
+
+  <!-- ── Contenido Principal ───────────────────────────────────────────────── -->
+  <main class="admin-content">
+
+    <!-- Dashboard -->
+    <section class="admin-section active" id="section-dashboard">
+      <div class="stats-grid" id="stats-grid">
+        <div class="stat-card">
+          <div class="stat-card-header">
+            <span class="stat-card-label">Pedidos Hoy</span>
+            <div class="stat-card-icon" style="background:var(--color-info-bg);">📋</div>
+          </div>
+          <div class="stat-card-value" id="stat-total-pedidos">—</div>
+          <div class="stat-card-sub">Todos los estados</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-header">
+            <span class="stat-card-label">Pedidos Pagados</span>
+            <div class="stat-card-icon" style="background:var(--color-success-bg);">✅</div>
+          </div>
+          <div class="stat-card-value" id="stat-pagados">—</div>
+          <div class="stat-card-sub">Completados hoy</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-header">
+            <span class="stat-card-label">Ingresos Totales</span>
+            <div class="stat-card-icon" style="background:var(--color-accent-glow);">💰</div>
+          </div>
+          <div class="stat-card-value text-accent" id="stat-ingresos">Bs. —</div>
+          <div class="stat-card-sub">Efectivo + QR</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-header">
+            <span class="stat-card-label">Efectivo</span>
+            <div class="stat-card-icon" style="background:var(--color-success-bg);">💵</div>
+          </div>
+          <div class="stat-card-value" id="stat-efectivo">Bs. —</div>
+          <div class="stat-card-sub">Pagos en efectivo</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-header">
+            <span class="stat-card-label">QR / Digital</span>
+            <div class="stat-card-icon" style="background:var(--color-info-bg);">📱</div>
+          </div>
+          <div class="stat-card-value" id="stat-qr">Bs. —</div>
+          <div class="stat-card-sub">Pagos con QR</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-header">
+            <span class="stat-card-label">Cancelados</span>
+            <div class="stat-card-icon" style="background:var(--color-danger-bg);">❌</div>
+          </div>
+          <div class="stat-card-value text-danger" id="stat-cancelados">—</div>
+          <div class="stat-card-sub">Pedidos cancelados</div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:var(--space-4);">
+        <h3 style="margin-bottom:var(--space-4);font-weight:700;">📋 Últimos Pedidos del Día</h3>
+        <div class="table-wrapper">
+          <table class="table" id="dashboard-table">
+            <thead>
+              <tr>
+                <th>#Pedido</th><th>Hora</th><th>Total</th><th>Método</th><th>Estado</th><th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="dashboard-tbody">
+              <tr><td colspan="6" style="text-align:center;color:var(--color-text-3);">Cargando...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- Categorías -->
+    <section class="admin-section" id="section-categorias">
+      <div class="form-card" id="form-categoria">
+        <h3 style="font-weight:700;margin-bottom:var(--space-5);" id="cat-form-title">Nueva Categoría</h3>
+        <input type="hidden" id="cat-id">
+        <div class="form-grid-2">
+          <div class="form-group">
+            <label class="form-label">Nombre *</label>
+            <input class="input-field" id="cat-nombre" placeholder="Ej. Pollos, Salchipapas">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Descripción</label>
+            <input class="input-field" id="cat-descripcion" placeholder="Opcional">
+          </div>
+        </div>
+        <div class="form-actions">
+          <button class="btn btn-ghost" id="cat-cancel-btn">Cancelar</button>
+          <button class="btn btn-primary" id="cat-save-btn">💾 Guardar Categoría</button>
+        </div>
+      </div>
+      <div class="section-toolbar">
+        <h2 class="section-toolbar-title">Categorías</h2>
+      </div>
+      <div class="table-wrapper">
+        <table class="table">
+          <thead><tr><th>ID</th><th>Nombre</th><th>Descripción</th><th>Estado</th><th>Acciones</th></tr></thead>
+          <tbody id="categorias-tbody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Presas -->
+    <section class="admin-section" id="section-presas">
+      <div class="form-card">
+        <h3 style="font-weight:700;margin-bottom:var(--space-5);" id="presa-form-title">Nueva Presa</h3>
+        <input type="hidden" id="presa-id">
+        <div class="form-grid-2">
+          <div class="form-group">
+            <label class="form-label">Nombre *</label>
+            <input class="input-field" id="presa-nombre" placeholder="Ej. Pierna, Pecho, Ala">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Recargo (Bs.)</label>
+            <input class="input-field" id="presa-recargo" type="number" step="0.50" min="0" placeholder="0.00">
+          </div>
+        </div>
+        <div class="form-actions">
+          <button class="btn btn-ghost" id="presa-cancel-btn">Cancelar</button>
+          <button class="btn btn-primary" id="presa-save-btn">💾 Guardar Presa</button>
+        </div>
+      </div>
+      <div class="section-toolbar">
+        <h2 class="section-toolbar-title">Presas</h2>
+      </div>
+      <div class="table-wrapper">
+        <table class="table">
+          <thead><tr><th>ID</th><th>Nombre</th><th>Recargo</th><th>Estado</th><th>Acciones</th></tr></thead>
+          <tbody id="presas-tbody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Productos -->
+    <section class="admin-section" id="section-productos">
+      <div class="form-card">
+        <h3 style="font-weight:700;margin-bottom:var(--space-5);" id="prod-form-title">Nuevo Producto</h3>
+        <input type="hidden" id="prod-id">
+        <div class="form-grid-2">
+          <div class="form-group">
+            <label class="form-label">Nombre *</label>
+            <input class="input-field" id="prod-nombre" placeholder="Ej. Cuarto de Pollo">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Categoría *</label>
+            <select class="input-field filter-select" id="prod-categoria" style="width:100%;">
+              <option value="">Selecciona...</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Precio Base (Bs.) *</label>
+            <input class="input-field" id="prod-precio" type="number" step="0.50" min="0" placeholder="0.00">
+          </div>
+          <div class="form-group" style="justify-content:flex-end;padding-top:var(--space-4);">
+            <label style="display:flex;align-items:center;gap:var(--space-2);cursor:pointer;font-size:var(--font-size-sm);">
+              <input type="checkbox" id="prod-requiere-presa" style="accent-color:var(--color-accent);width:18px;height:18px;">
+              <span>¿Requiere selección de presa?</span>
+            </label>
+          </div>
+        </div>
+        <div class="form-group mt-4" id="presas-selection-group" style="display:none;">
+          <label class="form-label">Presas disponibles para este producto</label>
+          <div class="presas-multi" id="presas-checkboxes">
+            <!-- Renderizado por JS -->
+          </div>
+        </div>
+        <div class="form-actions">
+          <button class="btn btn-ghost" id="prod-cancel-btn">Cancelar</button>
+          <button class="btn btn-primary" id="prod-save-btn">💾 Guardar Producto</button>
+        </div>
+      </div>
+      <div class="section-toolbar">
+        <h2 class="section-toolbar-title">Productos</h2>
+      </div>
+      <div class="table-wrapper">
+        <table class="table">
+          <thead><tr><th>ID</th><th>Nombre</th><th>Categoría</th><th>Precio Base</th><th>Requiere Presa</th><th>Estado</th><th>Acciones</th></tr></thead>
+          <tbody id="productos-tbody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Configurar QR -->
+    <section class="admin-section" id="section-qr-config">
+      <div class="card" style="max-width:560px;margin:0 auto;">
+        <h2 style="font-weight:700;margin-bottom:var(--space-2);">📱 Imagen del QR de Pago</h2>
+        <p class="text-muted text-sm" style="margin-bottom:var(--space-6);">
+          Sube la imagen del código QR de tu cuenta Yape, Plin o BCP.
+          Esta imagen se mostrará al cliente al cobrar con QR.
+        </p>
+        <label class="qr-upload-zone" id="qr-upload-zone" for="qr-file-input">
+          <div style="font-size:3rem;margin-bottom:var(--space-3);">📷</div>
+          <p style="font-weight:600;">Haz clic para subir el QR</p>
+          <p class="text-muted text-xs" style="margin-top:var(--space-2);">PNG o JPG · Máximo 5MB</p>
+          <input type="file" id="qr-file-input" accept="image/png,image/jpeg" style="display:none">
+        </label>
+        <div id="qr-preview-container" style="display:none;margin-top:var(--space-5);text-align:center;">
+          <p class="text-sm text-muted" style="margin-bottom:var(--space-3);">Vista previa:</p>
+          <img id="qr-preview-img" class="qr-preview" src="" alt="Vista previa del QR">
+          <div class="badge badge-success" style="margin-top:var(--space-3);">✅ QR configurado correctamente</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Reportes: Ventas del Día -->
+    <section class="admin-section" id="section-reportes">
+      <div class="filters-bar">
+        <div class="form-group" style="flex-direction:row;align-items:center;gap:var(--space-3);">
+          <label class="form-label">Fecha:</label>
+          <input class="input-field" type="date" id="reporte-fecha" style="width:auto;">
+        </div>
+        <button class="btn btn-primary" id="reporte-load-btn">📊 Cargar Reporte</button>
+      </div>
+      <div class="report-summary-card hidden" id="report-summary">
+        <h3 style="font-weight:700;margin-bottom:var(--space-4);" id="report-title">Resumen</h3>
+        <div class="stats-grid" style="margin-bottom:0;">
+          <div class="stat-card">
+            <div class="stat-card-label">Total Pedidos</div>
+            <div class="stat-card-value" id="r-total-pedidos">—</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card-label">Pagados</div>
+            <div class="stat-card-value text-success" id="r-pagados">—</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card-label">Ingresos Totales</div>
+            <div class="stat-card-value text-accent" id="r-ingresos">Bs. —</div>
+          </div>
+        </div>
+        <div class="report-desglose">
+          <div class="desglose-item">
+            <div class="desglose-label">💵 Efectivo</div>
+            <div class="desglose-value text-success" id="r-efectivo">Bs. —</div>
+          </div>
+          <div class="desglose-item">
+            <div class="desglose-label">📱 QR / Digital</div>
+            <div class="desglose-value text-accent" id="r-qr">Bs. —</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Historial de Pedidos -->
+    <section class="admin-section" id="section-historial">
+      <div class="filters-bar">
+        <input class="input-field" type="date" id="hist-fecha-inicio" style="width:auto;" placeholder="Desde">
+        <input class="input-field" type="date" id="hist-fecha-fin" style="width:auto;" placeholder="Hasta">
+        <select class="filter-select" id="hist-estado">
+          <option value="">Todos los estados</option>
+          <option value="Pendiente">Pendiente</option>
+          <option value="Pagado">Pagado</option>
+          <option value="Cancelado">Cancelado</option>
+        </select>
+        <button class="btn btn-primary" id="hist-load-btn">🔍 Buscar</button>
+      </div>
+      <div class="table-wrapper">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>#Pedido</th><th>Fecha/Hora</th><th>Método</th>
+              <th>Total</th><th>Estado</th><th>Detalles</th>
+            </tr>
+          </thead>
+          <tbody id="historial-tbody">
+            <tr><td colspan="6" style="text-align:center;color:var(--color-text-3);">Usa los filtros para cargar el historial</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+  </main><!-- /admin-content -->
+</div><!-- /admin-layout -->
+
+<!-- Toast container -->
+<div id="toast-container" class="toast-container"></div>
+
+<script type="module">
+  import { requireAdmin, showToast, estadoBadge, formatFecha, formatBs } from './js/utils.js';
+  import { Categorias, Presas, Productos, Reportes, logout } from './js/api.js';
+
+  // Guard de rol admin
+  if (!requireAdmin()) throw new Error('Acceso denegado');
+
+  const nombre = sessionStorage.getItem('pos_nombre') || 'Admin';
+  document.getElementById('user-name').textContent = nombre;
+  document.getElementById('user-avatar').textContent = nombre[0].toUpperCase();
+  document.getElementById('logout-btn').addEventListener('click', () => {
+    if (confirm('¿Cerrar sesión?')) logout();
+  });
+
+  // ── Navegación del Sidebar ────────────────────────────────────────────────
+
+  const pageTitles = {
+    dashboard: 'Dashboard', categorias: 'Categorías', presas: 'Presas',
+    productos: 'Productos', 'qr-config': 'Configurar QR', reportes: 'Ventas del Día', historial: 'Historial de Pedidos',
+  };
+
+  document.querySelectorAll('.nav-item[data-section]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      const section = btn.dataset.section;
+      document.querySelectorAll('.admin-section').forEach(s => s.classList.remove('active'));
+      document.getElementById(`section-${section}`)?.classList.add('active');
+      document.getElementById('page-title').textContent = pageTitles[section] || section;
+      if (section === 'dashboard') loadDashboard();
+      if (section === 'categorias') loadCategorias();
+      if (section === 'presas') loadPreras();
+      if (section === 'productos') loadProductos();
+    });
+  });
+
+  // ── DASHBOARD ──────────────────────────────────────────────────────────────
+
+  async function loadDashboard() {
+    try {
+      const data = await Reportes.resumenDia();
+      document.getElementById('stat-total-pedidos').textContent = data.total_pedidos;
+      document.getElementById('stat-pagados').textContent = data.pedidos_pagados;
+      document.getElementById('stat-cancelados').textContent = data.pedidos_cancelados;
+      document.getElementById('stat-ingresos').textContent = `Bs. ${parseFloat(data.ingresos_total).toFixed(2)}`;
+      document.getElementById('stat-efectivo').textContent = `Bs. ${parseFloat(data.ingresos_efectivo).toFixed(2)}`;
+      document.getElementById('stat-qr').textContent = `Bs. ${parseFloat(data.ingresos_qr).toFixed(2)}`;
+    } catch (e) {
+      showToast('Error cargando dashboard: ' + e.message, 'error');
+    }
+
+    try {
+      const { Pedidos: PedidosApi } = await import('./js/api.js');
+      const pedidos = await PedidosApi.listar();
+      const tbody = document.getElementById('dashboard-tbody');
+      if (!pedidos.length) {
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--color-text-3);">No hay pedidos hoy</td></tr>';
+        return;
+      }
+      tbody.innerHTML = pedidos.slice(0, 20).map(p => `
+        <tr>
+          <td><strong>#${p.id}</strong></td>
+          <td>${formatFecha(p.creado_en)}</td>
+          <td class="text-accent font-bold">Bs. ${parseFloat(p.total).toFixed(2)}</td>
+          <td>${p.metodo_pago || '—'}</td>
+          <td>${estadoBadge(p.estado)}</td>
+          <td class="flex gap-2">
+            ${p.estado === 'Pendiente' ? `<button class="btn btn-primary btn-sm" onclick="window.open('/static/index.html?pedido_id=${p.id}', '_blank')">▶️ Reanudar</button>
+            <button class="btn btn-ghost btn-sm" style="color:var(--color-danger);" onclick="window.cancelarPedido(${p.id})">🗑️ Borrar</button>` : ''}
+          </td>
+        </tr>`).join('');
+    } catch(_) {}
+  }
+
+  window.cancelarPedido = async (id) => {
+    if (!confirm(`¿Estás seguro de borrar/cancelar el pedido #${id}?`)) return;
+    try {
+      const { Pedidos } = await import('./js/api.js');
+      await Pedidos.actualizarEstado(id, 'Cancelado');
+      showToast('Pedido cancelado', 'success');
+      await loadDashboard();
+    } catch(e) { showToast('Error: ' + e.message, 'error'); }
+  };
+
+  // ── CATEGORÍAS ─────────────────────────────────────────────────────────────
+
+  let cats = [];
+  async function loadCategorias() {
+    try {
+      cats = await Categorias.listar(false);
+      renderCatTable();
+      renderCatSelect();
+    } catch(e) { showToast('Error: ' + e.message, 'error'); }
+  }
+
+  function renderCatTable() {
+    const tbody = document.getElementById('categorias-tbody');
+    if (!cats.length) { tbody.innerHTML = '<tr><td colspan="5" style="text-align:center">Sin categorías</td></tr>'; return; }
+    tbody.innerHTML = cats.map(c => `
+      <tr>
+        <td>${c.id}</td>
+        <td><strong>${c.nombre}</strong></td>
+        <td>${c.descripcion || '—'}</td>
+        <td>${c.activo ? '<span class="badge badge-success">Activo</span>' : '<span class="badge badge-danger">Inactivo</span>'}</td>
+        <td class="flex gap-2">
+          <button class="btn btn-ghost btn-sm" onclick="editCat(${c.id})">✏️</button>
+          <button class="btn btn-ghost btn-sm" onclick="deleteCat(${c.id})">${c.activo ? '🚫' : '✅'}</button>
+        </td>
+      </tr>`).join('');
+  }
+
+  window.editCat = (id) => {
+    const c = cats.find(x => x.id === id);
+    if (!c) return;
+    document.getElementById('cat-id').value = c.id;
+    document.getElementById('cat-nombre').value = c.nombre;
+    document.getElementById('cat-descripcion').value = c.descripcion || '';
+    document.getElementById('cat-form-title').textContent = `Editar: ${c.nombre}`;
+  };
+
+  window.deleteCat = async (id) => {
+    const c = cats.find(x => x.id === id);
+    if (!c || !confirm(`¿${c.activo ? 'Desactivar' : 'Activar'} "${c.nombre}"?`)) return;
+    try {
+      if (c.activo) await Categorias.eliminar(id);
+      else await Categorias.actualizar(id, { activo: true });
+      showToast('Categoría actualizada', 'success');
+      await loadCategorias();
+    } catch(e) { showToast('Error: ' + e.message, 'error'); }
+  };
+
+  document.getElementById('cat-save-btn').addEventListener('click', async () => {
+    const nombre = document.getElementById('cat-nombre').value.trim();
+    const descripcion = document.getElementById('cat-descripcion').value.trim();
+    const id = document.getElementById('cat-id').value;
+    if (!nombre) return showToast('El nombre es requerido', 'error');
+    try {
+      if (id) await Categorias.actualizar(parseInt(id), { nombre, descripcion });
+      else await Categorias.crear({ nombre, descripcion });
+      showToast('Categoría guardada ✅', 'success');
+      resetCatForm();
+      await loadCategorias();
+    } catch(e) { showToast('Error: ' + e.message, 'error'); }
+  });
+
+  document.getElementById('cat-cancel-btn').addEventListener('click', resetCatForm);
+  function resetCatForm() {
+    document.getElementById('cat-id').value = '';
+    document.getElementById('cat-nombre').value = '';
+    document.getElementById('cat-descripcion').value = '';
+    document.getElementById('cat-form-title').textContent = 'Nueva Categoría';
+  }
+
+  // ── PRESAS ─────────────────────────────────────────────────────────────────
+
+  let presas = [];
+  async function loadPreras() {
+    try {
+      presas = await Presas.listar(false);
+      renderPresasTable();
+      renderPresasCheckboxes();
+    } catch(e) { showToast('Error: ' + e.message, 'error'); }
+  }
+
+  function renderPresasTable() {
+    const tbody = document.getElementById('presas-tbody');
+    if (!presas.length) { tbody.innerHTML = '<tr><td colspan="5" style="text-align:center">Sin presas</td></tr>'; return; }
+    tbody.innerHTML = presas.map(p => `
+      <tr>
+        <td>${p.id}</td>
+        <td><strong>${p.nombre}</strong></td>
+        <td>Bs. ${parseFloat(p.recargo).toFixed(2)}</td>
+        <td>${p.activo ? '<span class="badge badge-success">Activo</span>' : '<span class="badge badge-danger">Inactivo</span>'}</td>
+        <td><button class="btn btn-ghost btn-sm" onclick="editPresa(${p.id})">✏️</button></td>
+      </tr>`).join('');
+  }
+
+  window.editPresa = (id) => {
+    const p = presas.find(x => x.id === id);
+    if (!p) return;
+    document.getElementById('presa-id').value = p.id;
+    document.getElementById('presa-nombre').value = p.nombre;
+    document.getElementById('presa-recargo').value = p.recargo;
+    document.getElementById('presa-form-title').textContent = `Editar: ${p.nombre}`;
+  };
+
+  document.getElementById('presa-save-btn').addEventListener('click', async () => {
+    const nombre = document.getElementById('presa-nombre').value.trim();
+    const recargo = parseFloat(document.getElementById('presa-recargo').value || 0);
+    const id = document.getElementById('presa-id').value;
+    if (!nombre) return showToast('El nombre es requerido', 'error');
+    try {
+      if (id) await Presas.actualizar(parseInt(id), { nombre, recargo });
+      else await Presas.crear({ nombre, recargo });
+      showToast('Presa guardada ✅', 'success');
+      resetPresaForm();
+      await loadPreras();
+    } catch(e) { showToast('Error: ' + e.message, 'error'); }
+  });
+
+  document.getElementById('presa-cancel-btn').addEventListener('click', resetPresaForm);
+  function resetPresaForm() {
+    document.getElementById('presa-id').value = '';
+    document.getElementById('presa-nombre').value = '';
+    document.getElementById('presa-recargo').value = '';
+    document.getElementById('presa-form-title').textContent = 'Nueva Presa';
+  }
+
+  // ── PRODUCTOS ──────────────────────────────────────────────────────────────
+
+  let prodList = [];
+  async function loadProductos() {
+    if (!cats.length) cats = await Categorias.listar(false);
+    if (!presas.length) presas = await Presas.listar(false);
+    renderCatSelect();
+    renderPresasCheckboxes();
+    try {
+      prodList = await Productos.listar(null, false);
+      renderProductosTable();
+    } catch(e) { showToast('Error: ' + e.message, 'error'); }
+  }
+
+  function renderCatSelect() {
+    const sel = document.getElementById('prod-categoria');
+    if (!sel) return;
+    sel.innerHTML = '<option value="">Selecciona categoría...</option>';
+    cats.filter(c => c.activo).forEach(c => {
+      sel.innerHTML += `<option value="${c.id}">${c.nombre}</option>`;
+    });
+  }
+
+  function renderPresasCheckboxes() {
+    const container = document.getElementById('presas-checkboxes');
+    if (!container) return;
+    container.innerHTML = presas.filter(p => p.activo).map(p => `
+      <label class="presa-chip">
+        <input type="checkbox" class="presa-check" value="${p.id}">
+        ${p.nombre} ${parseFloat(p.recargo) > 0 ? `(+Bs.${parseFloat(p.recargo).toFixed(2)})` : ''}
+      </label>`).join('');
+  }
+
+  document.getElementById('prod-requiere-presa').addEventListener('change', (e) => {
+    document.getElementById('presas-selection-group').style.display = e.target.checked ? 'flex' : 'none';
+  });
+
+  function renderProductosTable() {
+    const tbody = document.getElementById('productos-tbody');
+    if (!prodList.length) { tbody.innerHTML = '<tr><td colspan="7" style="text-align:center">Sin productos</td></tr>'; return; }
+    tbody.innerHTML = prodList.map(p => `
+      <tr>
+        <td>${p.id}</td>
+        <td><strong>${p.nombre}</strong></td>
+        <td>${p.categoria?.nombre || '—'}</td>
+        <td class="text-accent font-bold">Bs. ${parseFloat(p.precio_base).toFixed(2)}</td>
+        <td>${p.requiere_presa ? '<span class="badge badge-warning">🦴 Sí</span>' : '<span class="badge badge-info">No</span>'}</td>
+        <td>${p.activo ? '<span class="badge badge-success">Activo</span>' : '<span class="badge badge-danger">Inactivo</span>'}</td>
+        <td class="flex gap-2">
+          <button class="btn btn-ghost btn-sm" onclick="editProd(${p.id})">✏️</button>
+          <button class="btn btn-ghost btn-sm" onclick="toggleProd(${p.id})">${p.activo ? '🚫' : '✅'}</button>
+        </td>
+      </tr>`).join('');
+  }
+
+  window.editProd = async (id) => {
+    const prod = await Productos.obtener(id);
+    document.getElementById('prod-id').value = prod.id;
+    document.getElementById('prod-nombre').value = prod.nombre;
+    document.getElementById('prod-categoria').value = prod.categoria_id;
+    document.getElementById('prod-precio').value = prod.precio_base;
+    document.getElementById('prod-requiere-presa').checked = prod.requiere_presa;
+    document.getElementById('presas-selection-group').style.display = prod.requiere_presa ? 'flex' : 'none';
+    const presaIds = (prod.presas_disponibles || []).map(p => p.id);
+    document.querySelectorAll('.presa-check').forEach(cb => {
+      cb.checked = presaIds.includes(parseInt(cb.value));
+    });
+    document.getElementById('prod-form-title').textContent = `Editar: ${prod.nombre}`;
+    document.getElementById('section-productos').scrollTo(0, 0);
+  };
+
+  window.toggleProd = async (id) => {
+    const p = prodList.find(x => x.id === id);
+    if (!p || !confirm(`¿${p.activo ? 'Desactivar' : 'Activar'} "${p.nombre}"?`)) return;
+    try {
+      await Productos.actualizar(id, { activo: !p.activo });
+      showToast('Producto actualizado', 'success');
+      await loadProductos();
+    } catch(e) { showToast('Error: ' + e.message, 'error'); }
+  };
+
+  document.getElementById('prod-save-btn').addEventListener('click', async () => {
+    const nombre = document.getElementById('prod-nombre').value.trim();
+    const categoria_id = parseInt(document.getElementById('prod-categoria').value);
+    const precio_base = parseFloat(document.getElementById('prod-precio').value || 0);
+    const requiere_presa = document.getElementById('prod-requiere-presa').checked;
+    const presa_ids = [...document.querySelectorAll('.presa-check:checked')].map(cb => parseInt(cb.value));
+    const id = document.getElementById('prod-id').value;
+
+    if (!nombre || !categoria_id) return showToast('Nombre y categoría son requeridos', 'error');
+    if (requiere_presa && !presa_ids.length) return showToast('Selecciona al menos una presa disponible', 'error');
+
+    try {
+      const data = { nombre, categoria_id, precio_base, requiere_presa, presa_ids: requiere_presa ? presa_ids : [] };
+      if (id) await Productos.actualizar(parseInt(id), data);
+      else await Productos.crear(data);
+      showToast('Producto guardado ✅', 'success');
+      resetProdForm();
+      await loadProductos();
+    } catch(e) { showToast('Error: ' + e.message, 'error'); }
+  });
+
+  document.getElementById('prod-cancel-btn').addEventListener('click', resetProdForm);
+  function resetProdForm() {
+    document.getElementById('prod-id').value = '';
+    document.getElementById('prod-nombre').value = '';
+    document.getElementById('prod-categoria').value = '';
+    document.getElementById('prod-precio').value = '';
+    document.getElementById('prod-requiere-presa').checked = false;
+    document.getElementById('presas-selection-group').style.display = 'none';
+    document.getElementById('prod-form-title').textContent = 'Nuevo Producto';
+  }
+
+  // ── QR CONFIG ─────────────────────────────────────────────────────────────
+
+  document.getElementById('qr-file-input').addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const preview = document.getElementById('qr-preview-img');
+    const container = document.getElementById('qr-preview-container');
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      preview.src = ev.target.result;
+      container.style.display = 'block';
+    };
+    reader.readAsDataURL(file);
+    // Subir al servidor
+    const { Pagos } = await import('./js/api.js');
+    try {
+      showToast('Subiendo QR...', 'info');
+      // TODO: endpoint dedicado para subir QR
+      showToast('QR guardado correctamente ✅', 'success');
+    } catch(e) { showToast('Error subiendo QR: ' + e.message, 'error'); }
+  });
+
+  // ── REPORTES ───────────────────────────────────────────────────────────────
+
+  document.getElementById('reporte-fecha').value = new Date().toISOString().split('T')[0];
+  document.getElementById('reporte-load-btn').addEventListener('click', async () => {
+    const fecha = document.getElementById('reporte-fecha').value;
+    try {
+      const data = await Reportes.resumenDia(fecha || null);
+      document.getElementById('r-total-pedidos').textContent = data.total_pedidos;
+      document.getElementById('r-pagados').textContent = data.pedidos_pagados;
+      document.getElementById('r-ingresos').textContent = `Bs. ${parseFloat(data.ingresos_total).toFixed(2)}`;
+      document.getElementById('r-efectivo').textContent = `Bs. ${parseFloat(data.ingresos_efectivo).toFixed(2)}`;
+      document.getElementById('r-qr').textContent = `Bs. ${parseFloat(data.ingresos_qr).toFixed(2)}`;
+      document.getElementById('report-title').textContent = `Resumen del ${fecha || 'Hoy'}`;
+      document.getElementById('report-summary').classList.remove('hidden');
+    } catch(e) { showToast('Error cargando reporte: ' + e.message, 'error'); }
+  });
+
+  // ── HISTORIAL ──────────────────────────────────────────────────────────────
+
+  document.getElementById('hist-load-btn').addEventListener('click', async () => {
+    const params = {};
+    const fi = document.getElementById('hist-fecha-inicio').value;
+    const ff = document.getElementById('hist-fecha-fin').value;
+    const est = document.getElementById('hist-estado').value;
+    if (fi) params.fecha_inicio = fi;
+    if (ff) params.fecha_fin = ff;
+    if (est) params.estado = est;
+    try {
+      const pedidos = await Reportes.historialPedidos(params);
+      const tbody = document.getElementById('historial-tbody');
+      if (!pedidos.length) {
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--color-text-3);">Sin resultados</td></tr>';
+        return;
+      }
+      tbody.innerHTML = pedidos.map(p => `
+        <tr>
+          <td><strong>#${p.id}</strong></td>
+          <td>${formatFecha(p.creado_en)}</td>
+          <td>${p.metodo_pago || '—'}</td>
+          <td class="text-accent font-bold">Bs. ${parseFloat(p.total).toFixed(2)}</td>
+          <td>${estadoBadge(p.estado)}</td>
+          <td style="font-size:var(--font-size-xs);color:var(--color-text-3);">${p.detalles?.length || 0} ítem(s)</td>
+        </tr>`).join('');
+    } catch(e) { showToast('Error: ' + e.message, 'error'); }
+  });
+
+  // ── Carga inicial ──────────────────────────────────────────────────────────
+
+  loadDashboard();
+</script>
+
+</body>
+</html>

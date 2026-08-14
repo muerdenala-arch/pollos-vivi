@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pantalla Cliente — Sistema POS</title>
+  <link rel="stylesheet" href="css/main.css">
+  <style>
+    body {
+      background:
+        radial-gradient(ellipse at center, rgba(238,93,41,0.07) 0%, transparent 70%),
+        var(--color-bg);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: var(--space-8);
+      text-align: center;
+    }
+
+    .cliente-logo {
+      font-size: 4rem;
+      margin-bottom: var(--space-4);
+      filter: drop-shadow(0 4px 16px rgba(238,93,41,0.45));
+    }
+
+    .cliente-brand {
+      font-family: var(--font-display);
+      font-size: var(--font-size-3xl);
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      background: linear-gradient(135deg, var(--color-accent), var(--color-accent-2));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: var(--space-2);
+    }
+
+    .cliente-tagline {
+      color: var(--color-text-2);
+      font-size: var(--font-size-sm);
+      margin-bottom: var(--space-12);
+    }
+
+    /* Estado Idle */
+    .idle-screen {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: var(--space-4);
+    }
+
+    .idle-message {
+      font-size: var(--font-size-xl);
+      color: var(--color-text-2);
+      font-weight: 500;
+    }
+
+    .idle-sub {
+      font-size: var(--font-size-sm);
+      color: var(--color-text-3);
+    }
+
+    /* Estado QR */
+    .qr-screen {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      gap: var(--space-6);
+    }
+
+    .qr-screen.active { display: flex; }
+
+    .qr-title {
+      font-size: var(--font-size-xl);
+      font-weight: 700;
+      color: var(--color-text);
+    }
+
+    .qr-image-wrapper {
+      background: white;
+      border-radius: var(--radius-2xl);
+      padding: var(--space-5);
+      box-shadow: var(--shadow-accent);
+    }
+
+    .qr-image-wrapper img {
+      width: 260px;
+      height: 260px;
+      object-fit: contain;
+    }
+
+    .qr-pedido-total {
+      font-family: var(--font-display);
+      font-size: 5rem;
+      font-weight: 800;
+      letter-spacing: -0.04em;
+      line-height: 1;
+    }
+
+    .qr-currency {
+      font-size: var(--font-size-3xl);
+      color: var(--color-text-2);
+      font-weight: 600;
+      vertical-align: top;
+      margin-top: 0.8rem;
+    }
+
+    .qr-pedido-num {
+      font-size: var(--font-size-sm);
+      color: var(--color-text-3);
+    }
+
+    .qr-instruccion {
+      font-size: var(--font-size-base);
+      color: var(--color-text-2);
+      max-width: 360px;
+    }
+
+    /* Estado Pagado */
+    .pagado-screen {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      gap: var(--space-6);
+      animation: fadeInUp 0.5s ease;
+    }
+
+    .pagado-screen.active { display: flex; }
+
+    .pagado-icon {
+      font-size: 6rem;
+      animation: bounce 0.6s cubic-bezier(0.36, 0.07, 0.19, 0.97);
+    }
+
+    @keyframes bounce {
+      0%, 100% { transform: translateY(0); }
+      40% { transform: translateY(-20px); }
+      60% { transform: translateY(-10px); }
+    }
+
+    .pagado-title {
+      font-family: var(--font-display);
+      font-size: var(--font-size-4xl);
+      font-weight: 800;
+      color: var(--color-success);
+      letter-spacing: -0.03em;
+    }
+
+    .pagado-sub {
+      font-size: var(--font-size-xl);
+      color: var(--color-text-2);
+    }
+
+    /* Indicador de conexión */
+    .ws-status {
+      position: fixed;
+      bottom: var(--space-5);
+      right: var(--space-5);
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+      font-size: var(--font-size-xs);
+      color: var(--color-text-3);
+    }
+
+    .ws-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--color-text-3);
+    }
+
+    .ws-dot.connected { background: var(--color-success); }
+    .ws-dot.connected { animation: pulse 2s infinite; }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="cliente-logo">🍗</div>
+  <div class="cliente-brand">Pollo &amp; Salchipapas</div>
+  <p class="cliente-tagline">El mejor sabor de la ciudad</p>
+
+  <!-- Pantalla de espera -->
+  <div class="idle-screen" id="idle-screen">
+    <p class="idle-message">Bienvenido</p>
+    <p class="idle-sub">Su pedido aparecerá aquí en un momento</p>
+    <div style="margin-top:var(--space-4);opacity:0.3;font-size:3rem;">🛒</div>
+  </div>
+
+  <!-- Pantalla QR de pago -->
+  <div class="qr-screen" id="qr-screen">
+    <p class="qr-title">Por favor escanea el código QR para pagar</p>
+    <div class="qr-image-wrapper">
+      <img id="qr-img" src="" alt="Código QR de Pago">
+    </div>
+    <div>
+      <div class="qr-pedido-total">
+        <span class="qr-currency">Bs.</span>
+        <span id="qr-total-display">0.00</span>
+      </div>
+      <div class="qr-pedido-num" id="qr-pedido-num">Pedido #—</div>
+    </div>
+    <p class="qr-instruccion">
+      Abre tu app de Yape, Plin o banco y escanea el QR.<br>
+      <strong>No cierres esta pantalla.</strong>
+    </p>
+  </div>
+
+  <!-- Pantalla de pago confirmado -->
+  <div class="pagado-screen" id="pagado-screen">
+    <div class="pagado-icon">✅</div>
+    <div class="pagado-title">¡PAGO CONFIRMADO!</div>
+    <p class="pagado-sub">Gracias por tu compra 🙏</p>
+    <p class="text-muted text-sm">Espera tu pedido en el mostrador</p>
+  </div>
+
+  <!-- Indicador WebSocket -->
+  <div class="ws-status">
+    <div class="ws-dot" id="ws-dot"></div>
+    <span id="ws-status-text">Conectando...</span>
+  </div>
+
+
+<script type="module">
+  import { posWS } from './js/websocket.js';
+  import { API_BASE } from './js/api.js';
+
+  const idleScreen   = document.getElementById('idle-screen');
+  const qrScreen     = document.getElementById('qr-screen');
+  const pagadoScreen = document.getElementById('pagado-screen');
+  const wsDot        = document.getElementById('ws-dot');
+  const wsStatusText = document.getElementById('ws-status-text');
+
+  function showScreen(name) {
+    idleScreen.classList.remove('active');
+    qrScreen.classList.remove('active');
+    pagadoScreen.classList.remove('active');
+    if (name === 'idle')   idleScreen.style.display   = 'flex';
+    else idleScreen.style.display = 'none';
+    if (name === 'qr')     { qrScreen.classList.add('active'); qrScreen.style.display = 'flex'; }
+    else qrScreen.style.display = 'none';
+    if (name === 'pagado') { pagadoScreen.classList.add('active'); pagadoScreen.style.display = 'flex'; }
+    else pagadoScreen.style.display = 'none';
+  }
+
+  // Escuchar parámetros URL: ?pedido_id=123
+  const params = new URLSearchParams(window.location.search);
+  const pedidoId = params.get('pedido_id');
+
+  // Estado del pedido recibido via mensaje broadcast
+  posWS
+    .on('connected', () => {
+      wsDot.classList.add('connected');
+      wsStatusText.textContent = 'En línea';
+    })
+    .on('disconnected', () => {
+      wsDot.classList.remove('connected');
+      wsStatusText.textContent = 'Reconectando...';
+    })
+    .on('pago_completado', (data) => {
+      if (!pedidoId || data.pedido_id == pedidoId) {
+        showScreen('pagado');
+        // Volver a idle después de 5 segundos
+        setTimeout(() => {
+          showScreen('idle');
+          // Limpiar URL
+          window.history.replaceState({}, '', '/static/cliente.html');
+        }, 6000);
+      }
+    })
+    .on('pago_fallido', () => {
+      showScreen('idle');
+    });
+
+  // Si hay pedido en la URL, mostrar pantalla QR
+  if (pedidoId) {
+    const total = params.get('total') || '0.00';
+    document.getElementById('qr-total-display').textContent = parseFloat(total).toFixed(2);
+    document.getElementById('qr-pedido-num').textContent = `Pedido #${pedidoId}`;
+    document.getElementById('qr-img').src = `${API_BASE}/uploads/qr_pago.png`;
+    showScreen('qr');
+    posWS.connectPedido(parseInt(pedidoId));
+  } else {
+    showScreen('idle');
+    posWS.connect();
+  }
+</script>
+
+</body>
+</html>
