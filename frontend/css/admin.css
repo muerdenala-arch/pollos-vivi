@@ -1,39 +1,60 @@
 /*
  * Estilos del Panel de Administración
+ * v2 — Layout con scroll independiente por zona
  */
 
-/* Bloquear scroll global de la página en el panel admin */
+/* ═══════════════════════════════════════════════════════════════
+   RESET DE SCROLL GLOBAL — Solo aplica en el panel admin
+   ═══════════════════════════════════════════════════════════════ */
 html, body {
   height: 100%;
-  overflow: hidden; /* Evita que toda la página haga scroll */
+  max-height: 100vh;
+  overflow: hidden;   /* Bloquea cualquier scroll de página completa */
 }
 
-/* Layout principal: alto fijo = pantalla completa, sin scroll global */
+/* ═══════════════════════════════════════════════════════════════
+   LAYOUT PRINCIPAL — 2 columnas, altura fija 100vh
+   Col 1: Sidebar fijo (240px)
+   Col 2: Panel derecho (header arriba + content abajo con scroll)
+   ═══════════════════════════════════════════════════════════════ */
 .admin-layout {
   display: grid;
-  grid-template-columns: 240px 1fr;
-  grid-template-rows: auto 1fr;
-  height: 100vh;        /* Exactamente la pantalla, NO min-height */
-  overflow: hidden;     /* El scroll global queda bloqueado */
+  grid-template-columns: 240px 1fr;   /* Sidebar | Contenido */
+  grid-template-rows: auto 1fr;       /* Header auto | Content ocupa lo que queda */
+  grid-template-areas:
+    "sidebar header"
+    "sidebar content";
+  height: 100vh;     /* Exactamente la pantalla */
+  overflow: hidden;  /* Nunca crece más allá de la pantalla */
 }
 
-/* Sidebar: altura completa, scroll propio, botones siempre abajo */
+/* ═══════════════════════════════════════════════════════════════
+   SIDEBAR — Fija, altura completa, scroll propio si el menú es largo
+   Los botones "Abrir POS" y "Cerrar Sesión" siempre al fondo (flex)
+   ═══════════════════════════════════════════════════════════════ */
 .admin-sidebar {
-  grid-row: 1 / -1;           /* Ocupa todas las filas del grid */
-  height: 100vh;              /* Alto fijo igual a la pantalla */
-  position: sticky;
-  top: 0;
+  grid-area: sidebar;    /* Ocupa las 2 filas del lado izquierdo */
+  width: 240px;
+  height: 100vh;         /* Alto fijo — nunca se estira */
   background: var(--color-bg-2);
   border-right: 1px solid var(--color-border);
   padding: var(--space-6) var(--space-4);
   display: flex;
   flex-direction: column;
-  overflow-y: auto;           /* Scroll propio solo dentro del sidebar */
+  overflow-y: auto;      /* Scroll propio SOLO cuando el cursor está sobre el sidebar */
   overflow-x: hidden;
-  gap: 0;
   flex-shrink: 0;
+  /* Separar los botones de acceso al fondo */
+  /* Los nav-item de "Accesos" tienen margin-top:auto desde el nav-section-title anterior */
 }
-.admin-sidebar-logo { display: flex; align-items: center; gap: var(--space-3); padding: var(--space-2) var(--space-3); margin-bottom: var(--space-8); }
+
+/* Logo y marca */
+.admin-sidebar-logo {
+  display: flex; align-items: center; gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  margin-bottom: var(--space-8);
+  flex-shrink: 0;  /* Nunca se comprime */
+}
 .admin-sidebar-logo-icon {
   width: 42px; height: 42px;
   background: linear-gradient(135deg, var(--color-accent), var(--color-accent-2));
@@ -45,8 +66,24 @@ html, body {
 .admin-sidebar-brand { font-family: var(--font-display); font-size: var(--font-size-sm); font-weight: 700; line-height: 1.3; }
 .admin-sidebar-brand small { display: block; font-family: var(--font); font-size: var(--font-size-xs); color: var(--color-text-3); font-weight: 400; }
 
-.nav-section-title { font-size: var(--font-size-xs); font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: var(--color-text-3); padding: var(--space-2) var(--space-3); margin-top: var(--space-4); margin-bottom: var(--space-1); }
+/* Títulos de sección del menú */
+.nav-section-title {
+  font-size: var(--font-size-xs); font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.1em;
+  color: var(--color-text-3);
+  padding: var(--space-2) var(--space-3);
+  margin-top: var(--space-4); margin-bottom: var(--space-1);
+  flex-shrink: 0;
+}
 
+/* El título "Accesos" empuja los botones al fondo */
+.nav-section-title:last-of-type,
+.admin-sidebar > .nav-section-title[style*="margin-top:auto"],
+.admin-sidebar > div.nav-section-title:nth-last-of-type(1) {
+  margin-top: auto;
+}
+
+/* Botones de navegación */
 .nav-item {
   display: flex; align-items: center; gap: var(--space-3);
   padding: var(--space-3) var(--space-4);
@@ -54,6 +91,7 @@ html, body {
   color: var(--color-text-2); font-size: var(--font-size-sm); font-weight: 500;
   cursor: pointer; transition: all var(--transition);
   border: none; background: transparent; width: 100%; text-align: left;
+  flex-shrink: 0;
 }
 .nav-item:hover { background: var(--color-surface); color: var(--color-text); }
 .nav-item.active {
@@ -65,32 +103,40 @@ html, body {
 
 .admin-sidebar-footer { margin-top: auto; padding-top: var(--space-4); border-top: 1px solid var(--color-border); }
 
-/* Header Admin: fijo en la parte superior del panel derecho */
+/* ═══════════════════════════════════════════════════════════════
+   HEADER DERECHO — Fijo en la parte superior del panel derecho
+   ═══════════════════════════════════════════════════════════════ */
 .admin-header {
+  grid-area: header;
   background: var(--color-bg-2);
   border-bottom: 1px solid var(--color-border);
   padding: var(--space-4) var(--space-8);
   display: flex; align-items: center; justify-content: space-between;
-  position: sticky;
-  top: 0;
   z-index: 10;
-  flex-shrink: 0;
+  min-height: 0;   /* Necesario en grid para que no se desborde */
 }
 .admin-page-title { font-family: var(--font-display); font-size: var(--font-size-xl); font-weight: 700; letter-spacing: -0.01em; }
 
-/* Contenido principal: scroll propio, solo el panel derecho se mueve */
+/* ═══════════════════════════════════════════════════════════════
+   PANEL DE CONTENIDO — Scroll PROPIO e INDEPENDIENTE
+   Solo este panel se mueve cuando el cursor está sobre él
+   ═══════════════════════════════════════════════════════════════ */
 .admin-content {
+  grid-area: content;
   background: var(--color-bg);
   padding: var(--space-8);
-  overflow-y: auto;    /* Solo este panel hace scroll */
+  overflow-y: auto;    /* ← Solo este panel hace scroll vertical */
   overflow-x: hidden;
-  height: 100%;        /* Ocupa el espacio restante del grid */
-  min-height: 0;       /* Necesario para que overflow funcione en flex/grid */
+  min-height: 0;       /* ← CRÍTICO: permite que overflow funcione en grid */
 }
+
+/* Animación de entrada de secciones */
 .admin-section { display: none; }
 .admin-section.active { display: block; animation: fadeInUp 0.25s ease; }
 
-/* Stats Cards */
+/* ═══════════════════════════════════════════════════════════════
+   STATS CARDS (Dashboard)
+   ═══════════════════════════════════════════════════════════════ */
 .stats-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: var(--space-5); margin-bottom: var(--space-8); }
 .stat-card {
   background: linear-gradient(160deg, var(--color-bg-2), var(--color-bg-3));
@@ -107,16 +153,16 @@ html, body {
 .stat-card-value { font-family: var(--font-display); font-size: var(--font-size-3xl); font-weight: 800; color: var(--color-text); letter-spacing: -0.02em; }
 .stat-card-sub { font-size: var(--font-size-xs); color: var(--color-text-3); }
 
-/* Toolbar de sección */
+/* ═══════════════════════════════════════════════════════════════
+   TOOLBAR, FORMULARIOS Y TABLAS
+   ═══════════════════════════════════════════════════════════════ */
 .section-toolbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-5); }
 .section-toolbar-title { font-family: var(--font-display); font-size: var(--font-size-lg); font-weight: 700; }
 
-/* Formulario Inline */
 .form-card { background: var(--color-bg-2); border: 1px solid var(--color-border-2); border-radius: var(--radius-xl); padding: var(--space-6); margin-bottom: var(--space-6); }
 .form-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4); }
 .form-actions { display: flex; gap: var(--space-3); justify-content: flex-end; margin-top: var(--space-5); padding-top: var(--space-5); border-top: 1px solid var(--color-border); }
 
-/* Checkbox multiselect de presas */
 .presas-multi { display: flex; flex-wrap: wrap; gap: var(--space-2); }
 .presa-chip {
   display: flex; align-items: center; gap: var(--space-2);
@@ -129,7 +175,6 @@ html, body {
 .presa-chip input[type="checkbox"] { accent-color: var(--color-accent); }
 .presa-chip:hover { border-color: var(--color-accent); background: var(--color-accent-glow); }
 
-/* Filtros de historial */
 .filters-bar { display: flex; align-items: center; gap: var(--space-3); margin-bottom: var(--space-5); flex-wrap: wrap; }
 .filter-select {
   background: var(--color-bg-3); border: 1px solid var(--color-border-2);
@@ -139,12 +184,10 @@ html, body {
 }
 .filter-select:focus { border-color: var(--color-accent); box-shadow: 0 0 0 3px var(--color-accent-glow); }
 
-/* QR Upload en Admin */
 .qr-upload-zone { border: 2px dashed var(--color-border-2); border-radius: var(--radius-xl); padding: var(--space-10); text-align: center; cursor: pointer; transition: all var(--transition-md); }
 .qr-upload-zone:hover { border-color: var(--color-accent); background: var(--color-accent-glow); }
 .qr-preview { max-width: 200px; max-height: 200px; margin: var(--space-4) auto; border-radius: var(--radius-lg); }
 
-/* Reportes */
 .report-period-selector { display: flex; gap: var(--space-2); margin-bottom: var(--space-6); }
 .report-summary-card { background: var(--color-bg-2); border: 1px solid var(--color-border); border-radius: var(--radius-xl); padding: var(--space-6); margin-bottom: var(--space-6); }
 .report-desglose { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4); margin-top: var(--space-4); }
@@ -152,9 +195,16 @@ html, body {
 .desglose-label { font-size: var(--font-size-xs); color: var(--color-text-3); text-transform: uppercase; letter-spacing: 0.05em; }
 .desglose-value { font-family: var(--font-display); font-size: var(--font-size-2xl); font-weight: 800; margin-top: var(--space-1); }
 
-/* Responsivo */
+/* ═══════════════════════════════════════════════════════════════
+   RESPONSIVE
+   ═══════════════════════════════════════════════════════════════ */
 @media (max-width: 900px) {
-  .admin-layout { grid-template-columns: 1fr; }
+  .admin-layout {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "header"
+      "content";
+  }
   .admin-sidebar { display: none; }
   .form-grid-2 { grid-template-columns: 1fr; }
 }
