@@ -3,13 +3,12 @@ import { withErrorHandling } from "./_lib/http";
 import { getAuthUser } from "./_lib/auth";
 import { uploadDataUri } from "./_lib/cloudinary";
 
-export const config = {
-  api: {
-    bodyParser: { sizeLimit: "8mb" }, // fotos de comprobantes QR
-  },
-};
-
-/** Sube comprobantes de pago (capturas QR) a Cloudinary. Requiere sesión. */
+/**
+ * Sube comprobantes de pago (capturas QR) a Cloudinary. Requiere sesión.
+ * Nota: el límite de tamaño del body lo impone la plataforma de Vercel
+ * (~4.5 MB por request en funciones serverless estándar); no hay forma de
+ * ampliarlo desde código en este tipo de función.
+ */
 async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== "POST") {
     res.status(405).json({ error: "Método no permitido" });
