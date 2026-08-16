@@ -1,14 +1,10 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useCart } from "../context/CartContext";
 import { api, ApiError } from "../lib/api";
 import { useToast } from "./Toast";
-import type { Order, PaymentMethod } from "@shared/types";
+import type { Order, PaymentMethod, QrCode } from "@shared/types";
 
 const bs = (n: number) => `Bs. ${n.toFixed(2)}`;
-
-// QR estático de pago del negocio — imagen real migrada desde el sistema
-// anterior ("codigo qr de pago.jpg" → public/qr-pago.jpg).
-const STATIC_QR_URL = "/qr-pago.jpg";
 
 export function PaymentSheet({ onClose, onDone }: { onClose: () => void; onDone: () => void }) {
   const { lines, orderType, total, clear } = useCart();
@@ -17,7 +13,16 @@ export function PaymentSheet({ onClose, onDone }: { onClose: () => void; onDone:
   const [receiptDataUri, setReceiptDataUri] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [qrCodes, setQrCodes] = useState<QrCode[]>([]);
+  const [selectedQr, setSelectedQr] = useState<QrCode | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    api.get<QrCode[]>("/qr-codes").then((codes) => {
+      setQrCodes(codes);
+      setSelectedQr(codes[0] ?? null);
+    }).catch(() => {});
+  }, []);
 
   const onFile = (file: File) => {
     const reader = new FileReader();
@@ -82,7 +87,31 @@ export function PaymentSheet({ onClose, onDone }: { onClose: () => void; onDone:
 
           {method === "QR" && (
             <div className="qr-preview">
-              <img src={STATIC_QR_URL} alt="QR de pago" className="upload-preview" style={{ maxWidth: 220 }} />
+              {qrCodes.length > 1 && (
+                <div className="payment-methods" style={{ marginBottom: 0 }}>
+                  {qrCodes.map((qr) => (
+                    <button
+                      key={qr.id}
+                      className={`payment-method-btn ${selectedQr?.id === qr.id ? "active" : ""}`}
+                      onClick={() => setSelectedQr(qr)}
+                    >
+                      {qr.alias}
+                    </button>
+                  ))}
+                </div>
+              )}
+              {selectedQr ? (
+                <>
+                  <img src={selectedQr.image_url} alt={selectedQr.alias} className="upload-preview" style={{ maxWidth: 220 }} />
+                  {selectedQr.bank_or_holder && (
+                    <p style={{ fontSize: "0.85rem", fontWeight: 600 }}>{selectedQr.bank_or_holder}</p>
+                  )}
+                </>
+              ) : (
+                <p style={{ color: "var(--color-danger)", fontSize: "0.85rem" }}>
+                  No hay ningún QR configurado — agrégalo desde el panel admin.
+                </p>
+              )}
               <p style={{ color: "var(--color-text-muted)", fontSize: "0.85rem", textAlign: "center" }}>
                 Escanea el QR del local y luego sube la captura de tu comprobante.
               </p>

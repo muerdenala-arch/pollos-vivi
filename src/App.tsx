@@ -7,6 +7,7 @@ import { CashRegisterGate } from "./pages/CashOpenPage";
 import LoginPage from "./pages/LoginPage";
 import PosPage from "./pages/PosPage";
 import AdminPage from "./pages/AdminPage";
+import KitchenPage from "./pages/KitchenPage";
 import type { ReactNode } from "react";
 
 function RequireAuth({ children }: { children: ReactNode }) {
@@ -42,6 +43,14 @@ function AppRoutes() {
           <RequireAdmin>
             <AdminPage />
           </RequireAdmin>
+        }
+      />
+      <Route
+        path="/cocina"
+        element={
+          <RequireAuth>
+            <KitchenPage />
+          </RequireAuth>
         }
       />
       <Route path="*" element={<Navigate to="/" replace />} />

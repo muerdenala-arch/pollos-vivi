@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api, ApiError } from "../lib/api";
 import { useAuth } from "../context/AuthContext";
@@ -6,10 +6,10 @@ import { ThemeToggle } from "../components/ThemeToggle";
 import { useToast } from "../components/Toast";
 import { useCashRegister } from "../hooks/useCashRegister";
 import { useCatalog } from "../hooks/useCatalog";
-import type { Branch, AppUser, StockItem, Order } from "@shared/types";
+import type { Branch, AppUser, StockItem, Order, QrCode } from "@shared/types";
 import type { Categoria, Presa, Producto } from "@shared/catalog";
 
-type Tab = "reportes" | "pedidos" | "caja" | "catalogo" | "sucursales" | "usuarios" | "stock";
+type Tab = "reportes" | "pedidos" | "caja" | "catalogo" | "qr" | "sucursales" | "usuarios" | "stock";
 
 export default function AdminPage() {
   const [tab, setTab] = useState<Tab>("reportes");
@@ -22,6 +22,7 @@ export default function AdminPage() {
         <div className="topbar-brand">⚙️ Administración</div>
         <div className="topbar-actions">
           <ThemeToggle />
+          <button className="icon-btn" onClick={() => navigate("/cocina")} title="Pantalla de cocina">🍳</button>
           <button className="icon-btn" onClick={() => navigate("/")} title="Volver al POS">🍗</button>
           <button className="icon-btn" onClick={logout} title="Cerrar sesión">🚪</button>
         </div>
@@ -34,6 +35,7 @@ export default function AdminPage() {
             ["pedidos", "🧾 Pedidos"],
             ["caja", "💰 Caja"],
             ["catalogo", "🍗 Catálogo"],
+            ["qr", "🔳 Códigos QR"],
             ["sucursales", "🏬 Sucursales"],
             ["usuarios", "👤 Personal"],
             ["stock", "📦 Stock"],
@@ -50,6 +52,7 @@ export default function AdminPage() {
         {tab === "pedidos" && <PedidosPanel />}
         {tab === "caja" && <CajaPanel />}
         {tab === "catalogo" && <CatalogoPanel />}
+        {tab === "qr" && <QrCodesPanel />}
         {tab === "sucursales" && <SucursalesPanel />}
         {tab === "usuarios" && <UsuariosPanel />}
         {tab === "stock" && <StockPanel />}
@@ -413,6 +416,81 @@ function CatalogoPanel() {
         <button className="btn btn-primary" onClick={addPresa}>Crear presa</button>
       </div>
     </>
+  );
+}
+
+function QrCodesPanel() {
+  const [codes, setCodes] = useState<QrCode[]>([]);
+  const [alias, setAlias] = useState("");
+  const [bankOrHolder, setBankOrHolder] = useState("");
+  const [dataUri, setDataUri] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const { show } = useToast();
+  const fileInput = useRef<HTMLInputElement>(null);
+
+  const load = () => api.get<QrCode[]>("/qr-codes?all=1").then(setCodes).catch(() => {});
+  useEffect(() => { load(); }, []);
+
+  const onFile = (file: File) => {
+    const reader = new FileReader();
+    reader.onload = () => setDataUri(reader.result as string);
+    reader.readAsDataURL(file);
+  };
+
+  const create = async () => {
+    if (!alias.trim() || !dataUri) {
+      show("Alias e imagen del QR son obligatorios");
+      return;
+    }
+    setUploading(true);
+    try {
+      const up = await api.post<{ url: string }>("/upload", { dataUri, folder: "qr" });
+      await api.post("/qr-codes", { alias, bank_or_holder: bankOrHolder || null, image_url: up.url });
+      setAlias(""); setBankOrHolder(""); setDataUri(null);
+      load();
+      show("Código QR agregado");
+    } catch (e) {
+      show(e instanceof ApiError ? e.message : "Error subiendo el QR");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const toggleActivo = async (qr: QrCode) => {
+    await api.patch("/qr-codes", { id: qr.id, active: !qr.active });
+    load();
+  };
+
+  return (
+    <div className="admin-card">
+      <h3>Códigos QR de pago</h3>
+      <p style={{ color: "var(--color-text-muted)", fontSize: "0.85rem" }}>
+        El cajero elige entre estos al cobrar por QR. Puedes tener varios (Yape, banco, etc.).
+      </p>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))", gap: "0.75rem", margin: "0.75rem 0" }}>
+        {codes.map((qr) => (
+          <div key={qr.id} className="admin-card" style={{ marginBottom: 0, opacity: qr.active ? 1 : 0.5 }}>
+            <img src={qr.image_url} alt={qr.alias} style={{ width: "100%", borderRadius: 8, marginBottom: "0.4rem" }} />
+            <div style={{ fontWeight: 700, fontSize: "0.9rem" }}>{qr.alias}</div>
+            {qr.bank_or_holder && <div style={{ fontSize: "0.78rem", color: "var(--color-text-muted)" }}>{qr.bank_or_holder}</div>}
+            <button className="btn btn-secondary" style={{ marginTop: "0.5rem", padding: "0.3rem 0.6rem" }} onClick={() => toggleActivo(qr)}>
+              {qr.active ? "Desactivar" : "Activar"}
+            </button>
+          </div>
+        ))}
+      </div>
+
+      <div className="field-row"><label>Alias (ej. "Yape")</label><input value={alias} onChange={(e) => setAlias(e.target.value)} /></div>
+      <div className="field-row"><label>Banco / titular (opcional)</label><input value={bankOrHolder} onChange={(e) => setBankOrHolder(e.target.value)} /></div>
+      <input ref={fileInput} type="file" accept="image/*" style={{ display: "none" }} onChange={(e) => e.target.files?.[0] && onFile(e.target.files[0])} />
+      <button className="upload-box" style={{ marginBottom: "0.7rem" }} onClick={() => fileInput.current?.click()}>
+        {dataUri ? "Cambiar imagen" : "📷 Subir imagen del QR"}
+      </button>
+      {dataUri && <img className="upload-preview" src={dataUri} alt="Nuevo QR" style={{ maxWidth: 160 }} />}
+      <button className="btn btn-primary" onClick={create} disabled={uploading}>
+        {uploading ? "Subiendo…" : "Agregar código QR"}
+      </button>
+    </div>
   );
 }
 

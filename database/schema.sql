@@ -110,6 +110,18 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_one_open_register_per_cashier
     ON cash_registers(cashier_id) WHERE status = 'open';
 CREATE INDEX IF NOT EXISTS idx_cash_registers_branch ON cash_registers(branch_id, status);
 
+-- ── Códigos QR de pago (múltiples, administrables) ────────────────────────
+CREATE TABLE IF NOT EXISTS qr_codes (
+    id             SERIAL PRIMARY KEY,
+    alias          VARCHAR(100) NOT NULL,
+    bank_or_holder VARCHAR(150),
+    image_url      VARCHAR(500) NOT NULL,
+    branch_id      INTEGER REFERENCES branches(id) ON DELETE SET NULL,
+    active         BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at     TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_qr_codes_branch ON qr_codes(branch_id, active);
+
 -- ── Pedidos ────────────────────────────────────────────────────────────────
 -- `items` guarda snapshot congelado: [{product_id, product_name, presa_name,
 -- unit_price, quantity, subtotal}], calculado y validado SIEMPRE en el

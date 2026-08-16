@@ -49,6 +49,15 @@ export interface Order {
   created_at: string;
 }
 
+export interface QrCode {
+  id: number;
+  alias: string;
+  bank_or_holder: string | null;
+  image_url: string;
+  branch_id: number | null;
+  active: boolean;
+}
+
 export interface StockItem {
   id: number;
   branch_id: number;

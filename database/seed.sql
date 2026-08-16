@@ -45,3 +45,7 @@ SELECT setval('products_id_seq', (SELECT MAX(id) FROM products));
 
 INSERT INTO product_presas (product_id, presa_id)
     SELECT p.id, pr.id FROM products p CROSS JOIN presas pr WHERE p.id IN (1, 2);
+
+-- ── QR de pago (uno inicial; se pueden agregar más desde el panel) ────────
+INSERT INTO qr_codes (alias, bank_or_holder, image_url, branch_id, active) VALUES
+('QR Principal', 'Pollos Vivi', '/qr-pago.jpg', 1, TRUE);

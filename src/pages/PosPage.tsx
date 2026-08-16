@@ -42,6 +42,7 @@ export default function PosPage() {
             {user?.name} · {branch?.name}
           </span>
           <ThemeToggle />
+          <button className="icon-btn" onClick={() => navigate("/cocina")} title="Pantalla de cocina">🍳</button>
           {user?.role === "admin" && (
             <button className="icon-btn" onClick={() => navigate("/admin")} title="Panel admin">⚙️</button>
           )}
