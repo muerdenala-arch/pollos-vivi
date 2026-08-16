@@ -35,8 +35,8 @@ export function useCashRegister() {
 
   const close = useCallback(async (id: number, closing_amount: number) => {
     const data = await api.patch<{ register: CashRegister; resumen: Record<string, number> }>(
-      `/cash-registers/${id}/close`,
-      { closing_amount }
+      `/cash-registers`,
+      { id, closing_amount }
     );
     setRegister(null);
     return data;

@@ -265,7 +265,7 @@ function CatalogoPanel() {
   const addCategoria = async () => {
     if (!catName.trim()) return;
     try {
-      await api.post("/categories", { name: catName });
+      await api.post("/catalog", { resource: "category", name: catName });
       setCatName("");
       refresh();
       show("Categoría creada");
@@ -275,14 +275,14 @@ function CatalogoPanel() {
   };
 
   const toggleCategoriaActiva = async (c: Categoria) => {
-    await api.patch("/categories", { id: c.id, active: !c.activo });
+    await api.patch("/catalog", { resource: "category", id: c.id, active: !c.activo });
     refresh();
   };
 
   const addPresa = async () => {
     if (!presaName.trim()) return;
     try {
-      await api.post("/presas", { name: presaName, recargo: Number(presaRecargo) || 0 });
+      await api.post("/catalog", { resource: "presa", name: presaName, recargo: Number(presaRecargo) || 0 });
       setPresaName("");
       setPresaRecargo("0");
       refresh();
@@ -293,7 +293,7 @@ function CatalogoPanel() {
   };
 
   const togglePresaActiva = async (p: Presa) => {
-    await api.patch("/presas", { id: p.id, active: !p.activo });
+    await api.patch("/catalog", { resource: "presa", id: p.id, active: !p.activo });
     refresh();
   };
 
@@ -303,7 +303,8 @@ function CatalogoPanel() {
       return;
     }
     try {
-      await api.post("/products", {
+      await api.post("/catalog", {
+        resource: "product",
         category_id: prodCat,
         name: prodName,
         base_price: Number(prodPrice),
@@ -319,7 +320,7 @@ function CatalogoPanel() {
   };
 
   const toggleProductoActivo = async (p: Producto) => {
-    await api.patch("/products", { id: p.id, active: !p.activo });
+    await api.patch("/catalog", { resource: "product", id: p.id, active: !p.activo });
     refresh();
   };
 
