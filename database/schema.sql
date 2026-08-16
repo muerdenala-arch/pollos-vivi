@@ -111,6 +111,10 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_one_open_register_per_cashier
 CREATE INDEX IF NOT EXISTS idx_cash_registers_branch ON cash_registers(branch_id, status);
 
 -- ── Códigos QR de pago (múltiples, administrables) ────────────────────────
+-- Sin ningún QR "de fábrica": el admin sube el/los suyos desde el panel
+-- (imagen a Cloudinary). `is_default` marca cuál se preselecciona al
+-- cajero cuando hay más de uno activo (exclusividad resuelta en la app,
+-- no con constraint — ver api/qr-codes.ts).
 CREATE TABLE IF NOT EXISTS qr_codes (
     id             SERIAL PRIMARY KEY,
     alias          VARCHAR(100) NOT NULL,
@@ -118,6 +122,7 @@ CREATE TABLE IF NOT EXISTS qr_codes (
     image_url      VARCHAR(500) NOT NULL,
     branch_id      INTEGER REFERENCES branches(id) ON DELETE SET NULL,
     active         BOOLEAN NOT NULL DEFAULT TRUE,
+    is_default     BOOLEAN NOT NULL DEFAULT FALSE,
     created_at     TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS idx_qr_codes_branch ON qr_codes(branch_id, active);

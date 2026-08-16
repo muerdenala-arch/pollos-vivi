@@ -3,13 +3,31 @@ import { useNavigate } from "react-router-dom";
 import { api, ApiError } from "../lib/api";
 import { useAuth } from "../context/AuthContext";
 import { ThemeToggle } from "../components/ThemeToggle";
+import { Logo } from "../components/Logo";
+import { StatusBadge, Badge } from "../components/Badge";
+import { Switch } from "../components/Switch";
 import { useToast } from "../components/Toast";
 import { useCashRegister } from "../hooks/useCashRegister";
 import { useCatalog } from "../hooks/useCatalog";
 import type { Branch, AppUser, StockItem, Order, QrCode } from "@shared/types";
 import type { Categoria, Presa, Producto } from "@shared/catalog";
+import {
+  BarChart3, Receipt, Wallet, Utensils, QrCode as QrCodeIcon,
+  Store, Users, Package, ChefHat, LogOut, type LucideIcon,
+} from "lucide-react";
 
 type Tab = "reportes" | "pedidos" | "caja" | "catalogo" | "qr" | "sucursales" | "usuarios" | "stock";
+
+const TABS: { id: Tab; label: string; icon: LucideIcon }[] = [
+  { id: "reportes", label: "Reportes", icon: BarChart3 },
+  { id: "pedidos", label: "Pedidos", icon: Receipt },
+  { id: "caja", label: "Caja", icon: Wallet },
+  { id: "catalogo", label: "Catálogo", icon: Utensils },
+  { id: "qr", label: "Códigos QR", icon: QrCodeIcon },
+  { id: "sucursales", label: "Sucursales", icon: Store },
+  { id: "usuarios", label: "Personal", icon: Users },
+  { id: "stock", label: "Stock", icon: Package },
+];
 
 export default function AdminPage() {
   const [tab, setTab] = useState<Tab>("reportes");
@@ -19,29 +37,22 @@ export default function AdminPage() {
   return (
     <div className="app-shell">
       <header className="topbar">
-        <div className="topbar-brand">⚙️ Administración</div>
+        <div className="topbar-brand">
+          <Logo />
+          Administración
+        </div>
         <div className="topbar-actions">
           <ThemeToggle />
-          <button className="icon-btn" onClick={() => navigate("/cocina")} title="Pantalla de cocina">🍳</button>
-          <button className="icon-btn" onClick={() => navigate("/")} title="Volver al POS">🍗</button>
-          <button className="icon-btn" onClick={logout} title="Cerrar sesión">🚪</button>
+          <button className="icon-btn" onClick={() => navigate("/cocina")} title="Pantalla de cocina"><ChefHat size={18} /></button>
+          <button className="icon-btn" onClick={() => navigate("/")} title="Volver al POS"><Logo size={22} /></button>
+          <button className="icon-btn" onClick={logout} title="Cerrar sesión"><LogOut size={18} /></button>
         </div>
       </header>
 
       <div className="admin-tabs">
-        {(
-          [
-            ["reportes", "📊 Reportes"],
-            ["pedidos", "🧾 Pedidos"],
-            ["caja", "💰 Caja"],
-            ["catalogo", "🍗 Catálogo"],
-            ["qr", "🔳 Códigos QR"],
-            ["sucursales", "🏬 Sucursales"],
-            ["usuarios", "👤 Personal"],
-            ["stock", "📦 Stock"],
-          ] as [Tab, string][]
-        ).map(([id, label]) => (
+        {TABS.map(({ id, label, icon: Icon }) => (
           <button key={id} className={`cat-tab ${tab === id ? "active" : ""}`} onClick={() => setTab(id)}>
+            <Icon size={15} style={{ marginRight: 6, verticalAlign: -3 }} />
             {label}
           </button>
         ))}
@@ -81,6 +92,13 @@ function ReportesPanel() {
 
   return (
     <>
+      <div style={{ display: "flex", alignItems: "center", gap: "0.6rem", marginBottom: "0.85rem" }}>
+        <Logo size={36} />
+        <div>
+          <div style={{ fontWeight: 800, fontSize: "1.05rem" }}>Pollos Vivi</div>
+          <div style={{ fontSize: "0.78rem", color: "var(--color-text-muted)" }}>Reporte de ventas</div>
+        </div>
+      </div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: "0.75rem", marginBottom: "0.75rem" }}>
         <StatCard label="Ventas de hoy" value={bs(data.resumenHoy.total)} />
         <StatCard label="Efectivo" value={bs(data.resumenHoy.efectivo)} />
@@ -156,7 +174,7 @@ function PedidosPanel() {
               <td>{o.order_type}</td>
               <td>{bs(o.total)}</td>
               <td>{o.payment_method ?? "—"}</td>
-              <td>{o.status}</td>
+              <td><StatusBadge status={o.status} /></td>
             </tr>
           ))}
         </tbody>
@@ -340,7 +358,7 @@ function CatalogoPanel() {
                 <td>{nombreCategoria(p.categoriaId)}</td>
                 <td>{bs(p.precioBase)}</td>
                 <td>{p.requierePresa ? "Sí" : "—"}</td>
-                <td><button className="btn btn-secondary" style={{ padding: "0.3rem 0.7rem" }} onClick={() => toggleProductoActivo(p)}>{p.activo ? "Desactivar" : "Activar"}</button></td>
+                <td><Switch checked={p.activo} onChange={() => toggleProductoActivo(p)} label="Activo" /></td>
               </tr>
             ))}
           </tbody>
@@ -388,7 +406,7 @@ function CatalogoPanel() {
             {categorias.map((c) => (
               <tr key={c.id}>
                 <td>{c.nombre}</td>
-                <td><button className="btn btn-secondary" style={{ padding: "0.3rem 0.7rem" }} onClick={() => toggleCategoriaActiva(c)}>{c.activo ? "Desactivar" : "Activar"}</button></td>
+                <td><Switch checked={c.activo} onChange={() => toggleCategoriaActiva(c)} label="Activa" /></td>
               </tr>
             ))}
           </tbody>
@@ -406,7 +424,7 @@ function CatalogoPanel() {
               <tr key={p.id}>
                 <td>{p.nombre}</td>
                 <td>{bs(p.recargo)}</td>
-                <td><button className="btn btn-secondary" style={{ padding: "0.3rem 0.7rem" }} onClick={() => togglePresaActiva(p)}>{p.activo ? "Desactivar" : "Activar"}</button></td>
+                <td><Switch checked={p.activo} onChange={() => togglePresaActiva(p)} label="Activa" /></td>
               </tr>
             ))}
           </tbody>
@@ -461,21 +479,39 @@ function QrCodesPanel() {
     load();
   };
 
+  const marcarDefault = async (qr: QrCode) => {
+    await api.patch("/qr-codes", { id: qr.id, is_default: true, active: true });
+    load();
+  };
+
   return (
     <div className="admin-card">
       <h3>Códigos QR de pago</h3>
       <p style={{ color: "var(--color-text-muted)", fontSize: "0.85rem" }}>
-        El cajero elige entre estos al cobrar por QR. Puedes tener varios (Yape, banco, etc.).
+        El cajero elige entre los habilitados al cobrar por QR. El marcado con ⭐ es el que se muestra primero.
       </p>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))", gap: "0.75rem", margin: "0.75rem 0" }}>
+      {codes.length === 0 && (
+        <p style={{ color: "var(--color-text-faint)", fontSize: "0.85rem" }}>
+          Todavía no hay ningún código QR configurado. Agrega el primero abajo.
+        </p>
+      )}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))", gap: "0.75rem", margin: "0.75rem 0" }}>
         {codes.map((qr) => (
-          <div key={qr.id} className="admin-card" style={{ marginBottom: 0, opacity: qr.active ? 1 : 0.5 }}>
-            <img src={qr.image_url} alt={qr.alias} style={{ width: "100%", borderRadius: 8, marginBottom: "0.4rem" }} />
+          <div key={qr.id} className="admin-card" style={{ marginBottom: 0, opacity: qr.active ? 1 : 0.5, position: "relative" }}>
+            {qr.is_default && (
+              <span className="badge badge-gold" style={{ position: "absolute", top: 8, right: 8 }}>⭐ Por defecto</span>
+            )}
+            <img src={qr.image_url} alt={qr.alias} style={{ width: "100%", aspectRatio: "1", objectFit: "cover", borderRadius: 8, marginBottom: "0.4rem" }} />
             <div style={{ fontWeight: 700, fontSize: "0.9rem" }}>{qr.alias}</div>
-            {qr.bank_or_holder && <div style={{ fontSize: "0.78rem", color: "var(--color-text-muted)" }}>{qr.bank_or_holder}</div>}
-            <button className="btn btn-secondary" style={{ marginTop: "0.5rem", padding: "0.3rem 0.6rem" }} onClick={() => toggleActivo(qr)}>
-              {qr.active ? "Desactivar" : "Activar"}
-            </button>
+            {qr.bank_or_holder && <div style={{ fontSize: "0.78rem", color: "var(--color-text-muted)", marginBottom: "0.4rem" }}>{qr.bank_or_holder}</div>}
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: "0.5rem" }}>
+              <Switch checked={qr.active} onChange={() => toggleActivo(qr)} label={qr.active ? "Deshabilitar" : "Habilitar"} />
+              {!qr.is_default && qr.active && (
+                <button className="btn btn-secondary" style={{ width: "auto", padding: "0.3rem 0.6rem", fontSize: "0.78rem" }} onClick={() => marcarDefault(qr)}>
+                  Usar por defecto
+                </button>
+              )}
+            </div>
           </div>
         ))}
       </div>
@@ -548,11 +584,9 @@ function UsuariosPanel() {
               <td><span className="avatar-dot" style={{ background: `var(--color-${u.color}, var(--color-accent))` }}>{u.name.charAt(0)}</span></td>
               <td>{u.name} {u.protected && <span title="Protegido">🔒</span>}</td>
               <td>{u.role}</td>
-              <td>{u.status ? "Activo" : "Bloqueado"}</td>
+              <td><Badge tone={u.status ? "success" : "danger"}>{u.status ? "Activo" : "Bloqueado"}</Badge></td>
               <td>
-                <button className="btn btn-secondary" style={{ padding: "0.3rem 0.7rem" }} onClick={() => toggleBloqueo(u)} disabled={u.protected}>
-                  {u.status ? "Bloquear" : "Desbloquear"}
-                </button>
+                <Switch checked={u.status} onChange={() => toggleBloqueo(u)} label={u.status ? "Bloquear" : "Desbloquear"} disabled={u.protected} />
               </td>
             </tr>
           ))}

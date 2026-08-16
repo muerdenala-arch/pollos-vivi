@@ -32,26 +32,29 @@
   --font-sans: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
 
+/* Oscuro — estilo "dashboard moderno" (slate profundo + acento naranja),
+   mismo lenguaje visual que el POS de referencia. Tarjetas semitransparentes
+   (slate-900/80) con borde sutil slate-800 sobre un fondo casi negro. */
 :root[data-theme="dark"] {
-  --color-bg: #1a1410;
-  --color-bg-elevated: #241c16;
-  --color-bg-sunken: #120d0a;
-  --color-border: #3a2e23;
-  --color-text: #f5ece0;
-  --color-text-muted: #c4b09a;
-  --color-text-faint: #8a7660;
+  --color-bg: #0b0f19;
+  --color-bg-elevated: rgba(15, 23, 42, 0.8); /* slate-900/80 */
+  --color-bg-sunken: #0f172a; /* slate-900 sólido — chips, hover, inputs */
+  --color-border: #1e293b; /* slate-800 */
+  --color-text: #f1f5f9; /* slate-100 */
+  --color-text-muted: #94a3b8; /* slate-400 */
+  --color-text-faint: #64748b; /* slate-500 */
 
   --color-accent: #f0703b;
   --color-accent-hover: #f5895c;
-  --color-accent-contrast: #1a1410;
+  --color-accent-contrast: #0b0f19;
 
   --color-gold: #f0a83c;
   --color-success: #4ade80;
   --color-danger: #f87171;
   --color-info: #60a5fa;
 
-  --shadow-sheet: 0 -8px 30px rgba(0, 0, 0, 0.5);
-  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.4), 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-sheet: 0 -8px 30px rgba(0, 0, 0, 0.55);
+  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.45), 0 1px 2px rgba(0, 0, 0, 0.35);
 }
 
 * { box-sizing: border-box; }

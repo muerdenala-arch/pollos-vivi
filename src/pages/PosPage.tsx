@@ -7,6 +7,8 @@ import { useToast } from "../components/Toast";
 import { ThemeToggle } from "../components/ThemeToggle";
 import { CartSheet } from "../components/CartSheet";
 import { PendingOrdersSheet } from "../components/PendingOrdersSheet";
+import { Logo } from "../components/Logo";
+import { ClipboardList, ChefHat, Settings, LogOut } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 const bs = (n: number) => `Bs. ${n.toFixed(2)}`;
@@ -38,18 +40,21 @@ export default function PosPage() {
   return (
     <div className="app-shell">
       <header className="topbar">
-        <div className="topbar-brand">🍗 Pollos Vivi</div>
+        <div className="topbar-brand">
+          <Logo />
+          Pollos Vivi
+        </div>
         <div className="topbar-actions">
           <span style={{ fontSize: "0.85rem", color: "var(--color-text-muted)" }}>
             {user?.name} · {branch?.name}
           </span>
           <ThemeToggle />
-          <button className="icon-btn" onClick={() => setPendingOpen(true)} title="Pedidos pendientes">📋</button>
-          <button className="icon-btn" onClick={() => navigate("/cocina")} title="Pantalla de cocina">🍳</button>
+          <button className="icon-btn" onClick={() => setPendingOpen(true)} title="Pedidos pendientes"><ClipboardList size={18} /></button>
+          <button className="icon-btn" onClick={() => navigate("/cocina")} title="Pantalla de cocina"><ChefHat size={18} /></button>
           {user?.role === "admin" && (
-            <button className="icon-btn" onClick={() => navigate("/admin")} title="Panel admin">⚙️</button>
+            <button className="icon-btn" onClick={() => navigate("/admin")} title="Panel admin"><Settings size={18} /></button>
           )}
-          <button className="icon-btn" onClick={logout} title="Cerrar sesión">🚪</button>
+          <button className="icon-btn" onClick={logout} title="Cerrar sesión"><LogOut size={18} /></button>
         </div>
       </header>
 

@@ -4,6 +4,9 @@ import { api, ApiError } from "../lib/api";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../components/Toast";
 import { ThemeToggle } from "../components/ThemeToggle";
+import { Logo } from "../components/Logo";
+import { StatusBadge } from "../components/Badge";
+import { Settings, LogOut } from "lucide-react";
 import type { Order, OrderStatus } from "@shared/types";
 
 const REFRESH_MS = 6000;
@@ -61,16 +64,19 @@ export default function KitchenPage() {
   return (
     <div className="app-shell">
       <header className="topbar">
-        <div className="topbar-brand">🍳 Cocina</div>
+        <div className="topbar-brand">
+          <Logo />
+          Cocina
+        </div>
         <div className="topbar-actions">
           <span style={{ fontSize: "0.85rem", color: "var(--color-text-muted)" }}>{sorted.length} en curso</span>
           <ThemeToggle />
           {user?.role === "admin" ? (
-            <button className="icon-btn" onClick={() => navigate("/admin")} title="Panel admin">⚙️</button>
+            <button className="icon-btn" onClick={() => navigate("/admin")} title="Panel admin"><Settings size={18} /></button>
           ) : (
-            <button className="icon-btn" onClick={() => navigate("/")} title="Ir al POS">🍗</button>
+            <button className="icon-btn" onClick={() => navigate("/")} title="Ir al POS"><Logo size={22} /></button>
           )}
-          <button className="icon-btn" onClick={logout} title="Cerrar sesión">🚪</button>
+          <button className="icon-btn" onClick={logout} title="Cerrar sesión"><LogOut size={18} /></button>
         </div>
       </header>
 
@@ -119,8 +125,11 @@ function OrderCard({ order, onAdvance }: { order: Order; onAdvance: () => void }
           ⏱ {minutos} min
         </span>
       </div>
-      <div style={{ fontSize: "0.8rem", color: "var(--color-text-muted)", marginBottom: "0.5rem" }}>
-        {order.order_type === "Mesa" ? "🍽️" : order.order_type === "Llevar" ? "🥡" : "🛵"} {order.order_type}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "0.5rem" }}>
+        <span style={{ fontSize: "0.8rem", color: "var(--color-text-muted)" }}>
+          {order.order_type === "Mesa" ? "🍽️" : order.order_type === "Llevar" ? "🥡" : "🛵"} {order.order_type}
+        </span>
+        <StatusBadge status={order.status} />
       </div>
       <ul style={{ listStyle: "none", padding: 0, margin: "0 0 0.75rem", fontSize: "0.9rem" }}>
         {order.items.map((item, i) => (

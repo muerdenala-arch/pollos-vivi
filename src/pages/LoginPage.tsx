@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { ApiError } from "../lib/api";
+import { Logo } from "../components/Logo";
 
 const MAX_PIN = 6;
 
@@ -44,7 +45,7 @@ export default function LoginPage() {
 
   return (
     <div className="pin-screen">
-      <div className="pin-logo">🍗</div>
+      <div className="pin-logo"><Logo size={96} /></div>
       <h1 className="pin-title">Pollos Vivi</h1>
       <p className="pin-subtitle">Ingresa tu PIN para comenzar</p>
 

@@ -23,6 +23,7 @@ export function PaymentSheet({ onClose, onDone, existingOrder }: PaymentSheetPro
   const [error, setError] = useState("");
   const [qrCodes, setQrCodes] = useState<QrCode[]>([]);
   const [selectedQr, setSelectedQr] = useState<QrCode | null>(null);
+  const [zoomed, setZoomed] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -112,7 +113,14 @@ export function PaymentSheet({ onClose, onDone, existingOrder }: PaymentSheetPro
               )}
               {selectedQr ? (
                 <>
-                  <img src={selectedQr.image_url} alt={selectedQr.alias} className="upload-preview" style={{ maxWidth: 220 }} />
+                  <button
+                    onClick={() => setZoomed(true)}
+                    style={{ display: "block", padding: 0, borderRadius: "var(--radius-md)", overflow: "hidden" }}
+                    title="Toca para ampliar"
+                  >
+                    <img src={selectedQr.image_url} alt={selectedQr.alias} className="upload-preview" style={{ maxWidth: 220, display: "block" }} />
+                  </button>
+                  <p style={{ fontSize: "0.72rem", color: "var(--color-text-faint)" }}>Toca el QR para ampliarlo</p>
                   {selectedQr.bank_or_holder && (
                     <p style={{ fontSize: "0.85rem", fontWeight: 600 }}>{selectedQr.bank_or_holder}</p>
                   )}
@@ -148,6 +156,24 @@ export function PaymentSheet({ onClose, onDone, existingOrder }: PaymentSheetPro
           </button>
         </div>
       </aside>
+
+      {zoomed && selectedQr && (
+        <div
+          onClick={() => setZoomed(false)}
+          style={{
+            position: "fixed", inset: 0, zIndex: 60,
+            background: "rgba(0,0,0,0.85)",
+            display: "grid", placeItems: "center",
+            padding: "2rem",
+          }}
+        >
+          <img
+            src={selectedQr.image_url}
+            alt={selectedQr.alias}
+            style={{ maxWidth: "min(90vw, 420px)", maxHeight: "80vh", borderRadius: "var(--radius-md)" }}
+          />
+        </div>
+      )}
     </>
   );
 }

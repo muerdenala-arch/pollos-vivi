@@ -56,6 +56,7 @@ export interface QrCode {
   image_url: string;
   branch_id: number | null;
   active: boolean;
+  is_default: boolean;
 }
 
 export interface StockItem {

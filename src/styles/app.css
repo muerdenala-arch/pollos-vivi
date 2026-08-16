@@ -57,7 +57,7 @@
   text-align: center;
 }
 
-.pin-logo { font-size: 3rem; }
+.pin-logo { display: flex; justify-content: center; }
 .pin-title { font-size: 1.4rem; font-weight: 800; margin: 0; }
 .pin-subtitle { color: var(--color-text-muted); margin: -0.75rem 0 0; font-size: 0.9rem; }
 
@@ -509,6 +509,61 @@
   border-radius: var(--radius-sm);
   border: 1px solid var(--color-border);
   background: var(--color-bg);
+}
+
+/* ── Badges de estado ───────────────────────────────────────────────────── */
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.badge-info    { background: color-mix(in srgb, var(--color-info) 18%, transparent);    color: var(--color-info); }
+.badge-success { background: color-mix(in srgb, var(--color-success) 18%, transparent); color: var(--color-success); }
+.badge-gold    { background: color-mix(in srgb, var(--color-gold) 20%, transparent);    color: var(--color-gold); }
+.badge-danger  { background: color-mix(in srgb, var(--color-danger) 18%, transparent);  color: var(--color-danger); }
+.badge-muted   { background: var(--color-bg-sunken); color: var(--color-text-muted); }
+
+/* ── Switch (habilitar/deshabilitar) ───────────────────────────────────── */
+
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 42px;
+  height: 24px;
+  flex-shrink: 0;
+}
+.switch input { opacity: 0; width: 0; height: 0; }
+.switch-track {
+  position: absolute;
+  inset: 0;
+  background: var(--color-bg-sunken);
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  transition: background 0.15s;
+}
+.switch-track::before {
+  content: "";
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  left: 2px;
+  top: 2px;
+  background: var(--color-text-faint);
+  border-radius: 50%;
+  transition: transform 0.15s, background 0.15s;
+}
+.switch input:checked + .switch-track {
+  background: color-mix(in srgb, var(--color-success) 25%, var(--color-bg-sunken));
+  border-color: var(--color-success);
+}
+.switch input:checked + .switch-track::before {
+  transform: translateX(18px);
+  background: var(--color-success);
 }
 
 .toast {

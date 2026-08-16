@@ -13,7 +13,9 @@ const ThemeContext = createContext<ThemeState | null>(null);
 function getInitialTheme(): Theme {
   const saved = localStorage.getItem(STORAGE_KEY);
   if (saved === "light" || saved === "dark") return saved;
-  return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+  // Identidad visual del sistema: oscuro por defecto (dashboard moderno),
+  // salvo que el usuario ya haya elegido explícitamente el modo claro antes.
+  return "dark";
 }
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
