@@ -13,7 +13,7 @@ import type { Branch, AppUser, StockItem, Order, QrCode } from "@shared/types";
 import type { Categoria, Presa, Producto } from "@shared/catalog";
 import {
   BarChart3, Receipt, Wallet, Utensils, QrCode as QrCodeIcon,
-  Store, Users, Package, ChefHat, LogOut, type LucideIcon,
+  Store, Users, Package, ChefHat, LogOut, Menu, X, type LucideIcon,
 } from "lucide-react";
 
 type Tab = "reportes" | "pedidos" | "caja" | "catalogo" | "qr" | "sucursales" | "usuarios" | "stock";
@@ -31,34 +31,59 @@ const TABS: { id: Tab; label: string; icon: LucideIcon }[] = [
 
 export default function AdminPage() {
   const [tab, setTab] = useState<Tab>("reportes");
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const { logout } = useAuth();
   const navigate = useNavigate();
 
-  return (
-    <div className="app-shell">
-      <header className="topbar">
-        <div className="topbar-brand">
-          <Logo />
-          Administración
-        </div>
-        <div className="topbar-actions">
-          <ThemeToggle />
-          <button className="icon-btn" onClick={() => navigate("/cocina")} title="Pantalla de cocina"><ChefHat size={18} /></button>
-          <button className="icon-btn" onClick={() => navigate("/")} title="Volver al POS"><Logo size={22} /></button>
-          <button className="icon-btn" onClick={logout} title="Cerrar sesión"><LogOut size={18} /></button>
-        </div>
-      </header>
+  const selectTab = (id: Tab) => {
+    setTab(id);
+    setMobileNavOpen(false);
+  };
 
-      <div className="admin-tabs">
-        {TABS.map(({ id, label, icon: Icon }) => (
-          <button key={id} className={`cat-tab ${tab === id ? "active" : ""}`} onClick={() => setTab(id)}>
-            <Icon size={15} style={{ marginRight: 6, verticalAlign: -3 }} />
-            {label}
-          </button>
-        ))}
+  return (
+    <div className="admin-shell">
+      {/* Franja superior solo en móvil — el sidebar necesita un disparador para abrirse */}
+      <div className="admin-mobile-topbar">
+        <button className="icon-btn" onClick={() => setMobileNavOpen(true)} aria-label="Abrir menú"><Menu size={20} /></button>
+        <div className="topbar-brand"><Logo size={26} /> Administración</div>
       </div>
 
-      <div className="admin-panel">
+      {mobileNavOpen && <div className="cart-backdrop" style={{ zIndex: 70 }} onClick={() => setMobileNavOpen(false)} />}
+
+      <aside className={`admin-sidebar ${mobileNavOpen ? "open" : ""}`}>
+        <div>
+          <div className="admin-sidebar-header">
+            <Logo size={38} />
+            <div>
+              <div className="admin-sidebar-title">Pollos Vivi</div>
+              <div className="admin-sidebar-subtitle">Panel Admin</div>
+            </div>
+            <button className="icon-btn admin-sidebar-close" onClick={() => setMobileNavOpen(false)} aria-label="Cerrar menú"><X size={18} /></button>
+          </div>
+
+          <nav className="admin-nav">
+            {TABS.map(({ id, label, icon: Icon }) => (
+              <button
+                key={id}
+                className={`admin-nav-item ${tab === id ? "active" : ""}`}
+                onClick={() => selectTab(id)}
+              >
+                <Icon size={18} />
+                {label}
+              </button>
+            ))}
+          </nav>
+        </div>
+
+        <div className="admin-sidebar-footer">
+          <ThemeToggle />
+          <button className="admin-nav-item" onClick={() => navigate("/cocina")}><ChefHat size={18} /> Cocina</button>
+          <button className="admin-nav-item" onClick={() => navigate("/")}><Logo size={18} /> Volver al POS</button>
+          <button className="admin-nav-item" onClick={logout}><LogOut size={18} /> Cerrar sesión</button>
+        </div>
+      </aside>
+
+      <main className="admin-main">
         {tab === "reportes" && <ReportesPanel />}
         {tab === "pedidos" && <PedidosPanel />}
         {tab === "caja" && <CajaPanel />}
@@ -67,7 +92,7 @@ export default function AdminPage() {
         {tab === "sucursales" && <SucursalesPanel />}
         {tab === "usuarios" && <UsuariosPanel />}
         {tab === "stock" && <StockPanel />}
-      </div>
+      </main>
     </div>
   );
 }
