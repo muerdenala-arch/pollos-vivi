@@ -1,0 +1,82 @@
+/* ── Design tokens — paleta gastronómica (pollo a la brasa) ─────────────────
+   Claro: crema/hueso de fondo, rojo brasa como acento, ámbar para dorado.
+   Oscuro: carbón profundo, mismo acento rojo/ámbar con más saturación.       */
+
+:root {
+  --color-bg: #faf6f0;
+  --color-bg-elevated: #ffffff;
+  --color-bg-sunken: #f1e9dd;
+  --color-border: #e6d9c6;
+  --color-text: #2a1d14;
+  --color-text-muted: #6b5a48;
+  --color-text-faint: #9c8b76;
+
+  --color-accent: #c2410c; /* rojo brasa */
+  --color-accent-hover: #9a3412;
+  --color-accent-contrast: #ffffff;
+
+  --color-gold: #d97706; /* dorado / crocante */
+  --color-success: #15803d;
+  --color-danger: #dc2626;
+  --color-info: #2563eb;
+
+  --shadow-sheet: 0 -8px 30px rgba(42, 29, 20, 0.18);
+  --shadow-card: 0 1px 3px rgba(42, 29, 20, 0.08), 0 1px 2px rgba(42, 29, 20, 0.06);
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --font-sans: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+:root[data-theme="dark"] {
+  --color-bg: #1a1410;
+  --color-bg-elevated: #241c16;
+  --color-bg-sunken: #120d0a;
+  --color-border: #3a2e23;
+  --color-text: #f5ece0;
+  --color-text-muted: #c4b09a;
+  --color-text-faint: #8a7660;
+
+  --color-accent: #f0703b;
+  --color-accent-hover: #f5895c;
+  --color-accent-contrast: #1a1410;
+
+  --color-gold: #f0a83c;
+  --color-success: #4ade80;
+  --color-danger: #f87171;
+  --color-info: #60a5fa;
+
+  --shadow-sheet: 0 -8px 30px rgba(0, 0, 0, 0.5);
+  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.4), 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+* { box-sizing: border-box; }
+
+html, body, #root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior-y: contain;
+}
+
+button, input {
+  font-family: inherit;
+  color: inherit;
+}
+
+button {
+  cursor: pointer;
+  border: none;
+  background: none;
+}
+
+::selection {
+  background: var(--color-accent);
+  color: var(--color-accent-contrast);
+}

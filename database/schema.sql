@@ -1,108 +1,110 @@
 -- ═══════════════════════════════════════════════════════════════════════════
--- Esquema PostgreSQL — Sistema POS (Pollo & Salchipapas)
--- Ing. Rodrigo Zambrana Martinez  |  v1.1.0
+-- Esquema PostgreSQL (Neon) — Sistema POS Pollos Vivi v2.0
+-- Arquitectura: Vercel Serverless (/api) + Neon Postgres + Cloudinary.
 --
--- Este esquema está SINCRONIZADO con los modelos SQLAlchemy (app/models.py).
--- Nota: la app también puede crear las tablas automáticamente al iniciar
--- (Base.metadata.create_all), pero este archivo sirve como fuente de verdad
--- documentada y para despliegues manuales. Ejecutar seed.sql DESPUÉS.
+-- Tablas pedidas: branches, users, cash_registers, orders, stock_inventory.
+-- El catálogo de venta (categorías, productos, presas y sus precios) NO vive
+-- en tablas propias: se mantiene tal cual estaba (mismos productos, mismos
+-- precios, mismas presas) como fuente única en shared/catalog.ts, compartida
+-- entre frontend y backend, para no alterar las reglas de negocio existentes.
+-- Cada pedido guarda un snapshot congelado de esos ítems en `orders.items`.
 -- ═══════════════════════════════════════════════════════════════════════════
 
--- ── Tipos ENUM (coinciden con los Enum de Python) ──────────────────────────
-CREATE TYPE rol_usuario  AS ENUM ('admin', 'cajero');
-CREATE TYPE estado_pedido AS ENUM ('Pendiente', 'Pagado', 'Preparando', 'Entregado', 'Cancelado');
-CREATE TYPE metodo_pago   AS ENUM ('Efectivo', 'QR');
-CREATE TYPE estado_pago   AS ENUM ('Pendiente', 'Completado', 'Fallido', 'Anulado');
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
--- ── Usuarios ───────────────────────────────────────────────────────────────
-CREATE TABLE usuarios (
+DO $$ BEGIN
+  CREATE TYPE user_role AS ENUM ('admin', 'cajero');
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+DO $$ BEGIN
+  CREATE TYPE order_type AS ENUM ('Mesa', 'Llevar', 'Delivery');
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+DO $$ BEGIN
+  CREATE TYPE order_status AS ENUM ('Pendiente', 'Pagado', 'Preparando', 'Entregado', 'Cancelado');
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+DO $$ BEGIN
+  CREATE TYPE payment_method AS ENUM ('Efectivo', 'QR');
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+DO $$ BEGIN
+  CREATE TYPE register_status AS ENUM ('open', 'closed');
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+-- ── Sucursales ───────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS branches (
+    id         SERIAL PRIMARY KEY,
+    name       VARCHAR(100) NOT NULL,
+    address    VARCHAR(200),
+    phone      VARCHAR(50),
+    is_active  BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- ── Usuarios (cajeros / admins) ────────────────────────────────────────────
+-- El PIN nunca se guarda en texto plano: `pin_hash` es bcrypt del PIN numérico.
+CREATE TABLE IF NOT EXISTS users (
+    id         SERIAL PRIMARY KEY,
+    name       VARCHAR(100) NOT NULL,
+    role       user_role NOT NULL DEFAULT 'cajero',
+    pin_hash   VARCHAR(255) NOT NULL,
+    branch_id  INTEGER REFERENCES branches(id) ON DELETE SET NULL,
+    status     BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_users_branch ON users(branch_id);
+
+-- ── Caja / Arqueo de turno ─────────────────────────────────────────────────
+-- Corrige el hallazgo de la auditoría: antes vivía solo en localStorage del
+-- navegador del cajero. Ahora es la fuente de verdad, persistida y auditable.
+CREATE TABLE IF NOT EXISTS cash_registers (
     id              SERIAL PRIMARY KEY,
-    nombre          VARCHAR(100) NOT NULL,
-    username        VARCHAR(50)  NOT NULL UNIQUE,
-    hashed_password VARCHAR(255) NOT NULL,
-    rol             rol_usuario  NOT NULL DEFAULT 'cajero',
-    activo          BOOLEAN      DEFAULT TRUE,
-    creado_en       TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    cashier_id      INTEGER NOT NULL REFERENCES users(id),
+    branch_id       INTEGER NOT NULL REFERENCES branches(id),
+    opening_amount  NUMERIC(10, 2) NOT NULL DEFAULT 0.00,
+    closing_amount  NUMERIC(10, 2),
+    opened_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
+    closed_at       TIMESTAMPTZ,
+    status          register_status NOT NULL DEFAULT 'open'
 );
-CREATE INDEX idx_usuarios_username ON usuarios(username);
-
--- ── Categorías ─────────────────────────────────────────────────────────────
-CREATE TABLE categorias (
-    id          SERIAL PRIMARY KEY,
-    nombre      VARCHAR(100) NOT NULL UNIQUE,
-    descripcion TEXT,
-    activo      BOOLEAN DEFAULT TRUE,
-    creado_en   TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
-
--- ── Productos ──────────────────────────────────────────────────────────────
-CREATE TABLE productos (
-    id             SERIAL PRIMARY KEY,
-    categoria_id   INTEGER NOT NULL REFERENCES categorias(id) ON DELETE RESTRICT,
-    nombre         VARCHAR(150) NOT NULL,
-    precio_base    DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
-    requiere_presa BOOLEAN DEFAULT FALSE,   -- TRUE para productos de pollo
-    activo         BOOLEAN DEFAULT TRUE,
-    creado_en      TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
-CREATE INDEX idx_productos_categoria_id ON productos(categoria_id);
-
--- ── Presas ─────────────────────────────────────────────────────────────────
-CREATE TABLE presas (
-    id      SERIAL PRIMARY KEY,
-    nombre  VARCHAR(50) NOT NULL UNIQUE,   -- Pierna, Pecho, Ala, Mixto
-    recargo DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
-    activo  BOOLEAN DEFAULT TRUE
-);
-
--- ── Producto ↔ Presa (qué presas admite cada producto) ─────────────────────
-CREATE TABLE producto_presas (
-    producto_id INTEGER REFERENCES productos(id) ON DELETE CASCADE,
-    presa_id    INTEGER REFERENCES presas(id)    ON DELETE CASCADE,
-    PRIMARY KEY (producto_id, presa_id)
-);
+-- Un cajero no puede tener dos cajas abiertas a la vez.
+CREATE UNIQUE INDEX IF NOT EXISTS idx_one_open_register_per_cashier
+    ON cash_registers(cashier_id) WHERE status = 'open';
+CREATE INDEX IF NOT EXISTS idx_cash_registers_branch ON cash_registers(branch_id, status);
 
 -- ── Pedidos ────────────────────────────────────────────────────────────────
-CREATE TABLE pedidos (
-    id              SERIAL PRIMARY KEY,
-    cajero_id       INTEGER REFERENCES usuarios(id) ON DELETE SET NULL,
-    estado          estado_pedido NOT NULL DEFAULT 'Pendiente',
-    metodo_pago     metodo_pago,             -- NULL hasta el cobro
-    total           DECIMAL(12, 2) NOT NULL DEFAULT 0.00,
-    comprobante_url VARCHAR(500),            -- Foto comprobante (fallback)
-    creado_en       TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    actualizado_en  TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+-- `items` guarda snapshot congelado: [{product_id, product_name, presa_name,
+-- unit_price, quantity, subtotal}], calculado y validado SIEMPRE en el
+-- servidor (api/orders) contra shared/catalog.ts — el cliente nunca envía
+-- precios de confianza, igual que en el sistema anterior.
+CREATE TABLE IF NOT EXISTS orders (
+    id               SERIAL PRIMARY KEY,
+    ticket_number    VARCHAR(20) NOT NULL UNIQUE,
+    branch_id        INTEGER NOT NULL REFERENCES branches(id),
+    cashier_id       INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    cash_register_id INTEGER REFERENCES cash_registers(id) ON DELETE SET NULL,
+    order_type       order_type NOT NULL DEFAULT 'Llevar',
+    items            JSONB NOT NULL,
+    total            NUMERIC(12, 2) NOT NULL DEFAULT 0.00,
+    payment_method   payment_method,
+    receipt_url      VARCHAR(500),
+    status           order_status NOT NULL DEFAULT 'Pendiente',
+    created_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at       TIMESTAMPTZ NOT NULL DEFAULT now()
 );
-CREATE INDEX idx_pedidos_cajero_id     ON pedidos(cajero_id);
-CREATE INDEX idx_pedidos_estado        ON pedidos(estado);
-CREATE INDEX idx_pedidos_creado_en     ON pedidos(creado_en);
-CREATE INDEX idx_pedidos_estado_fecha  ON pedidos(estado, creado_en);  -- Reportes
+CREATE INDEX IF NOT EXISTS idx_orders_branch_fecha ON orders(branch_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_orders_cash_register ON orders(cash_register_id);
+CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status);
 
--- ── Detalle de pedidos (precios y nombres CONGELADOS) ──────────────────────
-CREATE TABLE detalle_pedidos (
-    id                       SERIAL PRIMARY KEY,
-    pedido_id                INTEGER NOT NULL REFERENCES pedidos(id)   ON DELETE CASCADE,
-    producto_id              INTEGER NOT NULL REFERENCES productos(id) ON DELETE RESTRICT,
-    presa_id                 INTEGER REFERENCES presas(id)             ON DELETE RESTRICT,
-    cantidad                 INTEGER NOT NULL CHECK (cantidad > 0),
-    precio_unitario          DECIMAL(10, 2) NOT NULL,  -- base + recargo (congelado)
-    subtotal                 DECIMAL(12, 2) NOT NULL,
-    nombre_producto_snapshot VARCHAR(200) NOT NULL,    -- Snapshot histórico
-    nombre_presa_snapshot    VARCHAR(100)
+-- ── Inventario / Stock ───────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS stock_inventory (
+    id         SERIAL PRIMARY KEY,
+    branch_id  INTEGER NOT NULL REFERENCES branches(id),
+    item_name  VARCHAR(150) NOT NULL,
+    quantity   NUMERIC(10, 2) NOT NULL DEFAULT 0,
+    min_stock  NUMERIC(10, 2) NOT NULL DEFAULT 0,
+    unit       VARCHAR(20) NOT NULL DEFAULT 'unidad',
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
-CREATE INDEX idx_detalle_pedido_id   ON detalle_pedidos(pedido_id);
-CREATE INDEX idx_detalle_producto_id ON detalle_pedidos(producto_id);
-CREATE INDEX idx_detalle_presa_id    ON detalle_pedidos(presa_id);
-
--- ── Pagos ──────────────────────────────────────────────────────────────────
-CREATE TABLE pagos (
-    id             SERIAL PRIMARY KEY,
-    pedido_id      INTEGER NOT NULL REFERENCES pedidos(id) ON DELETE CASCADE,
-    monto          DECIMAL(12, 2) NOT NULL,
-    metodo         metodo_pago NOT NULL,
-    estado         estado_pago DEFAULT 'Pendiente',
-    transaccion_id VARCHAR(255) UNIQUE,   -- ID de la pasarela
-    creado_en      TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
-CREATE INDEX idx_pagos_pedido_id   ON pagos(pedido_id);
-CREATE INDEX idx_pagos_transaccion ON pagos(transaccion_id);
+CREATE INDEX IF NOT EXISTS idx_stock_branch ON stock_inventory(branch_id);

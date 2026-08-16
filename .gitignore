@@ -1,15 +1,13 @@
-# ── Entorno virtual y Python ──
-venv/
-__pycache__/
-*.py[cod]
-*.egg-info/
+# ── Node / build ──
+node_modules/
+dist/
+dist-ssr/
+*.local
+*.tsbuildinfo
 
 # ── Configuración sensible (¡NO subir!) ──
 .env
-
-# ── Archivos subidos por usuarios ──
-backend/uploads/comprobantes/*
-!backend/uploads/comprobantes/.gitkeep
+.env.*.local
 
 # ── Sistema operativo / IDE ──
 .DS_Store
