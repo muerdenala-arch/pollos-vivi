@@ -12,6 +12,8 @@ interface UserRow {
   pin_hash: string;
   branch_id: number | null;
   status: boolean;
+  color: string;
+  protected: boolean;
 }
 
 /**
@@ -33,7 +35,7 @@ async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   const users = await query<UserRow>(
-    `SELECT id, name, role, pin_hash, branch_id, status FROM users WHERE status = TRUE`
+    `SELECT id, name, role, pin_hash, branch_id, status, color, protected FROM users WHERE status = TRUE`
   );
 
   let matched: UserRow | null = null;
@@ -68,6 +70,8 @@ async function handler(req: VercelRequest, res: VercelResponse) {
     role: matched.role,
     branch_id: matched.branch_id,
     status: matched.status,
+    color: matched.color,
+    protected: matched.protected,
   };
 
   const body: AuthResponse = { token, user, branch };

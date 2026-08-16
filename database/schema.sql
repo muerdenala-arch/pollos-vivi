@@ -3,11 +3,12 @@
 -- Arquitectura: Vercel Serverless (/api) + Neon Postgres + Cloudinary.
 --
 -- Tablas pedidas: branches, users, cash_registers, orders, stock_inventory.
--- El catálogo de venta (categorías, productos, presas y sus precios) NO vive
--- en tablas propias: se mantiene tal cual estaba (mismos productos, mismos
--- precios, mismas presas) como fuente única en shared/catalog.ts, compartida
--- entre frontend y backend, para no alterar las reglas de negocio existentes.
--- Cada pedido guarda un snapshot congelado de esos ítems en `orders.items`.
+-- El catálogo de venta (categories, products, presas) vive en sus propias
+-- tablas, administrable desde el panel — mismos productos/precios/presas que
+-- tenía el sistema anterior, solo que ahora editables en vez de fijos en
+-- código (ver database/migration_002_catalog.sql para el detalle histórico).
+-- Cada pedido guarda un snapshot congelado de esos ítems en `orders.items`,
+-- calculado y validado siempre en el servidor contra estas tablas.
 -- ═══════════════════════════════════════════════════════════════════════════
 
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
@@ -44,6 +45,8 @@ CREATE TABLE IF NOT EXISTS branches (
 
 -- ── Usuarios (cajeros / admins) ────────────────────────────────────────────
 -- El PIN nunca se guarda en texto plano: `pin_hash` es bcrypt del PIN numérico.
+-- `color` es un token de acento (nombre de color) para el avatar en el panel;
+-- `protected` evita borrar/bloquear al admin sembrado por el sistema.
 CREATE TABLE IF NOT EXISTS users (
     id         SERIAL PRIMARY KEY,
     name       VARCHAR(100) NOT NULL,
@@ -51,9 +54,43 @@ CREATE TABLE IF NOT EXISTS users (
     pin_hash   VARCHAR(255) NOT NULL,
     branch_id  INTEGER REFERENCES branches(id) ON DELETE SET NULL,
     status     BOOLEAN NOT NULL DEFAULT TRUE,
+    color      VARCHAR(20) NOT NULL DEFAULT 'primary',
+    protected  BOOLEAN NOT NULL DEFAULT FALSE,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS idx_users_branch ON users(branch_id);
+
+-- ── Catálogo (categorías, productos, presas) — administrable desde el panel ──
+CREATE TABLE IF NOT EXISTS categories (
+    id         SERIAL PRIMARY KEY,
+    name       VARCHAR(100) NOT NULL,
+    sort_order INTEGER NOT NULL DEFAULT 0,
+    active     BOOLEAN NOT NULL DEFAULT TRUE
+);
+
+CREATE TABLE IF NOT EXISTS presas (
+    id      SERIAL PRIMARY KEY,
+    name    VARCHAR(50) NOT NULL,
+    recargo NUMERIC(10, 2) NOT NULL DEFAULT 0.00,
+    active  BOOLEAN NOT NULL DEFAULT TRUE
+);
+
+CREATE TABLE IF NOT EXISTS products (
+    id             SERIAL PRIMARY KEY,
+    category_id    INTEGER NOT NULL REFERENCES categories(id) ON DELETE RESTRICT,
+    name           VARCHAR(150) NOT NULL,
+    base_price     NUMERIC(10, 2) NOT NULL DEFAULT 0.00,
+    requiere_presa BOOLEAN NOT NULL DEFAULT FALSE,
+    active         BOOLEAN NOT NULL DEFAULT TRUE,
+    sort_order     INTEGER NOT NULL DEFAULT 0
+);
+CREATE INDEX IF NOT EXISTS idx_products_category ON products(category_id);
+
+CREATE TABLE IF NOT EXISTS product_presas (
+    product_id INTEGER NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+    presa_id   INTEGER NOT NULL REFERENCES presas(id) ON DELETE CASCADE,
+    PRIMARY KEY (product_id, presa_id)
+);
 
 -- ── Caja / Arqueo de turno ─────────────────────────────────────────────────
 -- Corrige el hallazgo de la auditoría: antes vivía solo en localStorage del

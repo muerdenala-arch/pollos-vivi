@@ -20,6 +20,10 @@
   --color-danger: #dc2626;
   --color-info: #2563eb;
 
+  /* Alias para avatares de Personal (mismos nombres que usa la BD en users.color) */
+  --color-primary: var(--color-accent);
+  --color-secondary: var(--color-gold);
+
   --shadow-sheet: 0 -8px 30px rgba(42, 29, 20, 0.18);
   --shadow-card: 0 1px 3px rgba(42, 29, 20, 0.08), 0 1px 2px rgba(42, 29, 20, 0.06);
   --radius-sm: 8px;

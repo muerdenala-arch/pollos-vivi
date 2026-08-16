@@ -3,6 +3,7 @@ import { withErrorHandling } from "../_lib/http";
 import { query, queryOne, withTransaction } from "../_lib/db";
 import { getAuthUser } from "../_lib/auth";
 import { validarYCalcularItems, CatalogoError, DISPATCH_MODES } from "../../shared/catalog";
+import { loadCatalog } from "../_lib/catalog";
 import type { Order } from "../../shared/types";
 
 async function handler(req: VercelRequest, res: VercelResponse) {
@@ -37,7 +38,8 @@ async function handler(req: VercelRequest, res: VercelResponse) {
 
     let calculo;
     try {
-      calculo = validarYCalcularItems(items ?? []);
+      const { productos, presas } = await loadCatalog();
+      calculo = validarYCalcularItems(items ?? [], productos, presas);
     } catch (e) {
       if (e instanceof CatalogoError) {
         res.status(400).json({ error: e.message });

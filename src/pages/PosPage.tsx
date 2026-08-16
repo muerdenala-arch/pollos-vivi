@@ -1,14 +1,14 @@
 import { useMemo, useState } from "react";
-import { CATEGORIAS, buildVariantes, type Variante } from "@shared/catalog";
+import type { Variante } from "@shared/catalog";
 import { useCart } from "../context/CartContext";
 import { useAuth } from "../context/AuthContext";
+import { useCatalog } from "../hooks/useCatalog";
 import { useToast } from "../components/Toast";
 import { ThemeToggle } from "../components/ThemeToggle";
 import { CartSheet } from "../components/CartSheet";
 import { useNavigate } from "react-router-dom";
 
 const bs = (n: number) => `Bs. ${n.toFixed(2)}`;
-const ALL_VARIANTES = buildVariantes();
 
 export default function PosPage() {
   const [selectedCat, setSelectedCat] = useState<number | null>(null);
@@ -16,16 +16,17 @@ export default function PosPage() {
   const [cartOpen, setCartOpen] = useState(false);
   const { addVariante, itemCount, total } = useCart();
   const { user, branch, logout } = useAuth();
+  const { categorias, variantes: allVariantes, loading } = useCatalog();
   const { show } = useToast();
   const navigate = useNavigate();
 
   const variantes = useMemo(() => {
-    let list = ALL_VARIANTES;
+    let list = allVariantes;
     if (selectedCat != null) list = list.filter((v) => v.categoriaId === selectedCat);
     const term = search.trim().toLowerCase();
     if (term) list = list.filter((v) => v.nombreCompleto.toLowerCase().includes(term));
     return list;
-  }, [selectedCat, search]);
+  }, [allVariantes, selectedCat, search]);
 
   const onAdd = (v: Variante) => {
     addVariante(v);
@@ -62,7 +63,7 @@ export default function PosPage() {
             <button className={`cat-tab ${selectedCat === null ? "active" : ""}`} onClick={() => setSelectedCat(null)}>
               Todos
             </button>
-            {CATEGORIAS.map((c) => (
+            {categorias.map((c) => (
               <button
                 key={c.id}
                 className={`cat-tab ${selectedCat === c.id ? "active" : ""}`}
@@ -73,7 +74,12 @@ export default function PosPage() {
             ))}
           </div>
 
-          {variantes.length === 0 ? (
+          {loading ? (
+            <div className="empty-state">
+              <div className="empty-state-icon">⏳</div>
+              <p>Cargando catálogo…</p>
+            </div>
+          ) : variantes.length === 0 ? (
             <div className="empty-state">
               <div className="empty-state-icon">🔍</div>
               <p>Sin resultados</p>

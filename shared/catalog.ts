@@ -1,12 +1,14 @@
 /**
  * Catálogo de venta — Pollos Vivi.
  *
- * Fuente única de verdad, compartida entre frontend (src/) y las funciones
- * serverless (api/). NO se alteraron categorías, productos, precios ni presas
- * respecto del sistema anterior — se migraron tal cual desde database/seed.sql.
+ * El catálogo (categorías, productos, presas) vive en la base de datos
+ * (tablas categories/products/presas), administrable desde el panel admin.
+ * Este módulo solo define los tipos y las funciones PURAS de cálculo/
+ * validación, compartidas entre frontend y las funciones /api — reciben los
+ * datos como parámetro, no los "conocen" de antemano.
  *
- * Los precios SIEMPRE se calculan aquí, nunca se confía en lo que envíe el
- * cliente (misma regla anti-manipulación que tenía el backend FastAPI).
+ * Los precios SIEMPRE se recalculan en el servidor a partir de lo que hay
+ * en la base en ese momento; nunca se confía en lo que envíe el cliente.
  */
 
 export type DispatchMode = "Mesa" | "Llevar" | "Delivery";
@@ -16,6 +18,7 @@ export interface Presa {
   id: number;
   nombre: string;
   recargo: number;
+  activo: boolean;
 }
 
 export interface Producto {
@@ -24,62 +27,29 @@ export interface Producto {
   nombre: string;
   precioBase: number;
   requierePresa: boolean;
-  /** IDs de presas admitidas (solo si requierePresa = true) */
+  activo: boolean;
+  /** IDs de presas admitidas (solo relevante si requierePresa = true) */
   presaIds: number[];
 }
 
 export interface Categoria {
   id: number;
   nombre: string;
+  activo: boolean;
 }
 
-export const CATEGORIAS: Categoria[] = [
-  { id: 1, nombre: "Pollos" },
-  { id: 2, nombre: "Salchipapas" },
-  { id: 3, nombre: "Bebidas" },
-  { id: 4, nombre: "Extras" },
-];
-
-export const PRESAS: Presa[] = [
-  { id: 1, nombre: "Pierna", recargo: 0 },
-  { id: 2, nombre: "Pecho", recargo: 0 },
-  { id: 3, nombre: "Ala", recargo: 0 },
-  { id: 4, nombre: "Mixto", recargo: 0 },
-];
-
-const TODAS_LAS_PRESAS = PRESAS.map((p) => p.id);
-
-export const PRODUCTOS: Producto[] = [
-  // Pollos
-  { id: 1, categoriaId: 1, nombre: "Cuarto de Pollo", precioBase: 20.0, requierePresa: true, presaIds: TODAS_LAS_PRESAS },
-  { id: 2, categoriaId: 1, nombre: "Medio Pollo", precioBase: 38.0, requierePresa: true, presaIds: TODAS_LAS_PRESAS },
-  { id: 3, categoriaId: 1, nombre: "Pollo Entero", precioBase: 72.0, requierePresa: false, presaIds: [] },
-  // Salchipapas
-  { id: 4, categoriaId: 2, nombre: "Salchipapa Simple", precioBase: 15.0, requierePresa: false, presaIds: [] },
-  { id: 5, categoriaId: 2, nombre: "Salchipapa Especial", precioBase: 20.0, requierePresa: false, presaIds: [] },
-  { id: 6, categoriaId: 2, nombre: "Salchipapa Familiar", precioBase: 35.0, requierePresa: false, presaIds: [] },
-  // Bebidas
-  { id: 7, categoriaId: 3, nombre: "Gaseosa Personal", precioBase: 5.0, requierePresa: false, presaIds: [] },
-  { id: 8, categoriaId: 3, nombre: "Gaseosa 1.5L", precioBase: 10.0, requierePresa: false, presaIds: [] },
-  { id: 9, categoriaId: 3, nombre: "Jugo Natural", precioBase: 8.0, requierePresa: false, presaIds: [] },
-  // Extras
-  { id: 10, categoriaId: 4, nombre: "Ensalada", precioBase: 5.0, requierePresa: false, presaIds: [] },
-  { id: 11, categoriaId: 4, nombre: "Porción Papa", precioBase: 8.0, requierePresa: false, presaIds: [] },
-];
-
-export function getProducto(id: number): Producto | undefined {
-  return PRODUCTOS.find((p) => p.id === id);
+export function getProducto(productos: Producto[], id: number): Producto | undefined {
+  return productos.find((p) => p.id === id);
 }
 
-export function getPresa(id: number): Presa | undefined {
-  return PRESAS.find((p) => p.id === id);
+export function getPresa(presas: Presa[], id: number): Presa | undefined {
+  return presas.find((p) => p.id === id);
 }
 
 /**
  * Una "variante" es lo que se muestra como tarjeta en el POS:
  * - Productos sin presa → 1 variante.
  * - Productos con presa → 1 variante por cada presa admitida.
- * Mismo comportamiento que frontend/js/pos.js (buildVariantes) del sistema anterior.
  */
 export interface Variante {
   key: string; // `${productoId}-${presaId|'null'}`
@@ -91,13 +61,14 @@ export interface Variante {
   categoriaId: number;
 }
 
-export function buildVariantes(productos: Producto[] = PRODUCTOS): Variante[] {
+export function buildVariantes(productos: Producto[], presas: Presa[]): Variante[] {
   const variantes: Variante[] = [];
   for (const producto of productos) {
+    if (!producto.activo) continue;
     if (producto.requierePresa && producto.presaIds.length > 0) {
       for (const presaId of producto.presaIds) {
-        const presa = getPresa(presaId);
-        if (!presa) continue;
+        const presa = getPresa(presas, presaId);
+        if (!presa || !presa.activo) continue;
         const primeraPalabra = producto.nombre.split(" ")[0];
         variantes.push({
           key: `${producto.id}-${presa.id}`,
@@ -149,10 +120,15 @@ export interface ItemPedido {
 export class CatalogoError extends Error {}
 
 /**
- * Recalcula precios en servidor a partir de lo que manda el cliente.
- * Lanza CatalogoError si algo es inválido — nunca confía en precios del front.
+ * Recalcula precios en servidor a partir de lo que manda el cliente y del
+ * catálogo vigente en la base de datos (productos/presas). Lanza
+ * CatalogoError si algo es inválido — nunca confía en precios del front.
  */
-export function validarYCalcularItems(items: ItemCarritoInput[]): { items: ItemPedido[]; total: number } {
+export function validarYCalcularItems(
+  items: ItemCarritoInput[],
+  productos: Producto[],
+  presas: Presa[]
+): { items: ItemPedido[]; total: number } {
   if (!Array.isArray(items) || items.length === 0) {
     throw new CatalogoError("El pedido debe tener al menos un ítem");
   }
@@ -161,8 +137,8 @@ export function validarYCalcularItems(items: ItemCarritoInput[]): { items: ItemP
   let total = 0;
 
   for (const raw of items) {
-    const producto = getProducto(raw.productoId);
-    if (!producto) throw new CatalogoError(`Producto ${raw.productoId} no existe`);
+    const producto = getProducto(productos, raw.productoId);
+    if (!producto || !producto.activo) throw new CatalogoError(`Producto ${raw.productoId} no existe`);
 
     const cantidad = Number(raw.cantidad);
     if (!Number.isInteger(cantidad) || cantidad < 1 || cantidad > 99) {
@@ -177,8 +153,8 @@ export function validarYCalcularItems(items: ItemCarritoInput[]): { items: ItemP
       if (!producto.requierePresa) {
         throw new CatalogoError(`"${producto.nombre}" no admite selección de presa`);
       }
-      const presa = getPresa(raw.presaId);
-      if (!presa || !producto.presaIds.includes(presa.id)) {
+      const presa = getPresa(presas, raw.presaId);
+      if (!presa || !presa.activo || !producto.presaIds.includes(presa.id)) {
         throw new CatalogoError(`Presa inválida para "${producto.nombre}"`);
       }
       precioUnitario = round2(producto.precioBase + presa.recargo);

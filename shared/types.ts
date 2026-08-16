@@ -19,6 +19,8 @@ export interface AppUser {
   role: UserRole;
   branch_id: number | null;
   status: boolean;
+  color: string;
+  protected: boolean;
 }
 
 export interface CashRegister {
