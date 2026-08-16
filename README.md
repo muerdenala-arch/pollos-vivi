@@ -1,170 +1,55 @@
-# 🍗 Sistema POS — Pollo & Salchipapas
+# Pollos Vivi — POS v2.0
 
-**Sistema de Gestión y Punto de Venta (POS) Web**  
-**Ingeniero:** Rodrigo Zambrana Martinez  
-**Versión:** 1.0.0 | **Stack:** FastAPI + PostgreSQL + Vanilla HTML/CSS/JS
+Sistema de punto de venta mobile-first para pollería, reescrito sobre:
 
----
+- **Frontend:** React + TypeScript + Vite (SPA), en `/src`.
+- **Backend:** funciones serverless de Vercel (Node/TypeScript), en `/api`.
+- **Base de datos:** PostgreSQL en Neon (proyecto dedicado, separado de cualquier otro negocio).
+- **Imágenes:** Cloudinary (comprobantes de pago QR).
+- **Catálogo compartido:** `/shared/catalog.ts` — misma fuente de verdad para frontend y API, migrada 1:1 desde el sistema anterior (mismas categorías, productos, precios y presas).
 
-## 📁 Estructura del Proyecto
-
-```
-Sistema_Pollo/
-├── backend/
-│   ├── app/
-│   │   ├── main.py              # FastAPI app + WebSocket
-│   │   ├── config.py            # Variables de entorno
-│   │   ├── database.py          # SQLAlchemy engine
-│   │   ├── models.py            # ORM (Usuarios, Productos, Pedidos, Pagos)
-│   │   ├── schemas.py           # Validación Pydantic
-│   │   ├── routers/
-│   │   │   ├── auth.py          # Login JWT + Crear usuarios
-│   │   │   ├── categorias.py    # CRUD Categorías
-│   │   │   ├── productos.py     # CRUD Productos + Presas
-│   │   │   ├── pedidos.py       # Crear y gestionar pedidos
-│   │   │   ├── pagos.py         # QR, Efectivo, Comprobante
-│   │   │   ├── reportes.py      # Ventas del día + Historial
-│   │   │   └── webhooks.py      # Confirmación pago QR (pasarela)
-│   │   └── services/
-│   │       ├── auth_service.py  # JWT, bcrypt, guards de rol
-│   │       ├── qr_service.py    # Servicio QR estático
-│   │       └── ws_manager.py    # WebSocket en tiempo real
-│   ├── requirements.txt
-│   └── .env.example
-│
-├── frontend/
-│   ├── login.html               # 🔐 Login (cajero y admin)
-│   ├── index.html               # 🖥️  POS Principal (Cajero)
-│   ├── admin.html               # ⚙️  Panel Administración
-│   ├── cliente.html             # 📱 Pantalla del Cliente (QR)
-│   ├── css/
-│   │   ├── main.css             # Design System global
-│   │   ├── login.css
-│   │   ├── pos.css
-│   │   └── admin.css
-│   └── js/
-│       ├── api.js               # Cliente HTTP centralizado
-│       ├── websocket.js         # Cliente WebSocket
-│       ├── pos.js               # Lógica carrito y catálogo
-│       ├── pagos.js             # Flujos de cobro
-│       └── utils.js             # Utilidades compartidas
-│
-├── database/
-│   ├── schema.sql               # Esquema PostgreSQL completo
-│   └── seed.sql                 # Datos iniciales de prueba
-│
-└── iniciar_servidor.bat         # ▶️  Inicio rápido (Windows)
-```
-
----
-
-## 🚀 Instalación y Puesta en Marcha
-
-### Requisitos Previos
-- Python 3.10+ instalado
-- PostgreSQL 14+ en ejecución
-- (Opcional) pgAdmin o DBeaver para gestionar la BD
-
-### Paso 1: Configurar la Base de Datos
-
-```sql
--- En PostgreSQL, crear la base de datos:
-CREATE DATABASE pos_pollo;
-
--- Aplicar el esquema:
-\i database/schema.sql
-
--- (Opcional) Cargar datos de prueba:
-\i database/seed.sql
-```
-
-### Paso 2: Configurar Variables de Entorno
+## Desarrollo local
 
 ```bash
-# Copiar el archivo de configuración:
-copy backend\.env.example backend\.env
-
-# Editar backend\.env con tu editor:
-# DATABASE_URL=postgresql://postgres:TU_PASSWORD@localhost:5432/pos_pollo
-# SECRET_KEY=genera_una_clave_aleatoria_segura
+npm install
+cp .env.example .env   # completar con tus credenciales reales
+npm run dev            # sirve el frontend en :5173 (proxy /api → :3000)
 ```
 
-### Paso 3: Iniciar el Sistema
+Para probar las funciones `/api` localmente necesitas `vercel dev` (usa las mismas funciones que en producción) o levantar tu propio runner Node apuntando al puerto 3000.
 
-**Opción A — Doble clic:**
-```
-iniciar_servidor.bat
-```
+## Variables de entorno
 
-**Opción B — Manual:**
+Ver `.env.example`. Se configuran en Vercel → Project Settings → Environment Variables:
+
+- `DATABASE_URL` — cadena de conexión de Neon.
+- `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET`.
+- `JWT_SECRET` — clave para firmar las sesiones.
+
+## Base de datos
+
 ```bash
-cd backend
-python -m venv venv
-venv\Scripts\activate
-pip install -r requirements.txt
-uvicorn app.main:app --reload --port 8000
+psql "$DATABASE_URL" -f database/schema.sql
+psql "$DATABASE_URL" -f database/seed.sql
 ```
 
-### Paso 4: Acceder al Sistema
+Tablas: `branches`, `users` (PIN hasheado con bcrypt), `cash_registers` (apertura/cierre de caja, ya no vive en localStorage), `orders` (ítems como JSONB, precios recalculados y congelados en el servidor), `stock_inventory`.
 
-| Pantalla | URL |
-|---|---|
-| 📖 Documentación API | http://localhost:8000/docs |
-| 🔐 Login | http://localhost:8000/static/login.html |
-| 🖥️ POS Cajero | http://localhost:8000/static/index.html |
-| ⚙️ Administración | http://localhost:8000/static/admin.html |
-| 📱 Pantalla Cliente | http://localhost:8000/static/cliente.html |
+## Build / despliegue
 
-### Credenciales por Defecto (datos seed)
+```bash
+npm run build   # tsc -b (chequea /src y /api) + vite build → dist/
+```
 
-| Usuario | Contraseña | Rol |
-|---|---|---|
-| `admin` | `admin123` | Administrador |
-| `cajero` | `cajero123` | Cajero |
+`vercel.json` enruta todo lo que no sea `/api/*` a la SPA (`dist/index.html`).
 
-> ⚠️ **Cambia las contraseñas en producción** usando el endpoint `POST /api/v1/auth/usuarios`.
+## Usuarios de prueba (seed)
 
----
+- Admin — PIN `1234`
+- Cajero — PIN `1111`
 
-## 💡 Flujo de Uso
+Cambiar estos PIN antes de usar en producción real.
 
-### Flujo del Cajero
-1. Iniciar sesión en `/login.html`
-2. En la pantalla POS:
-   - Seleccionar categoría (izquierda)
-   - Tocar producto → Si requiere presa, seleccionarla en el modal
-   - Revisar carrito (derecha) con totales automáticos en **Bs.**
-3. Cobrar:
-   - **Efectivo:** Ingresar monto recibido → El sistema calcula cambio
-   - **QR:** Se muestra el código QR del negocio → Al recibir el pago, el estado se actualiza automáticamente por WebSocket
+## Fuera de alcance de esta reescritura
 
-### Configurar el QR de Pago (Admin)
-1. Entrar al Panel Admin → "Configurar QR"
-2. Subir la imagen de tu código QR de Yape/Plin/BCP
-3. El QR aparecerá en la pantalla del cliente al cobrar
-
----
-
-## 🔧 Endpoints Principales (API)
-
-| Método | Endpoint | Descripción |
-|---|---|---|
-| POST | `/api/v1/auth/login` | Login, retorna JWT |
-| GET | `/api/v1/categorias` | Lista categorías |
-| GET | `/api/v1/productos` | Lista productos con presas |
-| POST | `/api/v1/pedidos` | Crear pedido (calcula precios desde BD) |
-| POST | `/api/v1/pagos/efectivo/{id}` | Registrar pago en efectivo |
-| POST | `/api/v1/pagos/qr/{id}` | Iniciar cobro con QR |
-| POST | `/api/v1/webhooks/pagos/qr` | Webhook de pasarela (confirmar pago) |
-| GET | `/api/v1/reportes/ventas/dia` | Resumen de ventas del día |
-| WS | `ws://localhost:8000/ws` | WebSocket tiempo real (cajero) |
-
----
-
-## 🔮 Próximos Pasos (Roadmap)
-
-- [ ] Conectar pasarela QR dinámica real (Yape/Plin Business API)
-- [ ] Módulo de Alembic para migraciones versionadas
-- [ ] Tests unitarios con pytest
-- [ ] Dockerizar para despliegue en la nube
-- [ ] Dashboard con gráficos de ventas semanales/mensuales
+Para mantener el foco en lo pedido (endpoints `/api`, Neon, Cloudinary, mobile-first), quedaron fuera del sistema anterior: WebSockets en tiempo real, impresión automática de tickets y reportes avanzados. El módulo de caja/arqueo, en cambio, sí se corrigió: pasó de `localStorage` a la tabla `cash_registers` en Neon.

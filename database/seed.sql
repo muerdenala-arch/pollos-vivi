@@ -1,59 +1,21 @@
--- Script de datos iniciales (SEED) para el Sistema POS
--- Ejecutar DESPUÉS de aplicar schema.sql
+-- Datos iniciales — ejecutar DESPUÉS de schema.sql
+-- Los PIN se hashean en el propio SQL con pgcrypto (bcrypt), compatible con
+-- bcryptjs en las funciones /api. CAMBIAR los PIN por defecto en producción.
 
--- ── Usuario Admin por defecto ─────────────────────────────────────────────────
--- Contraseña: admin123 (hashear en producción via bcrypt)
--- IMPORTANTE: Cambiar la contraseña luego de la primera sesión.
--- Hash bcrypt de "admin123":
-INSERT INTO usuarios (nombre, username, hashed_password, rol) VALUES
-('Administrador', 'admin', '$2b$12$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36WQoeG6Lruj3vjPGga31lW', 'admin');
+INSERT INTO branches (name, address, phone, is_active) VALUES
+('Sucursal Principal', 'Av. Principal S/N', '70000000', TRUE);
 
--- Usuario Cajero de prueba (contraseña: cajero123)
-INSERT INTO usuarios (nombre, username, hashed_password, rol) VALUES
-('Cajero Principal', 'cajero', '$2b$12$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36WQoeG6Lruj3vjPGga31lW', 'cajero');
+-- Admin: PIN 1234
+INSERT INTO users (name, role, pin_hash, branch_id, status) VALUES
+('Administrador', 'admin', crypt('1234', gen_salt('bf')), 1, TRUE);
 
--- ── Categorías ────────────────────────────────────────────────────────────────
-INSERT INTO categorias (nombre, descripcion) VALUES
-('Pollos',      'Cuartos, medios y pollos enteros'),
-('Salchipapas', 'Salchipapas simples y especiales'),
-('Bebidas',     'Gaseosas, jugos y refrescos'),
-('Extras',      'Adicionales y acompañamientos');
+-- Cajero: PIN 1111
+INSERT INTO users (name, role, pin_hash, branch_id, status) VALUES
+('Cajero Principal', 'cajero', crypt('1111', gen_salt('bf')), 1, TRUE);
 
--- ── Presas ────────────────────────────────────────────────────────────────────
-INSERT INTO presas (nombre, recargo) VALUES
-('Pierna',  0.00),
-('Pecho',   0.00),
-('Ala',     0.00),
-('Mixto',   0.00);
-
--- ── Productos de Pollo ────────────────────────────────────────────────────────
-INSERT INTO productos (categoria_id, nombre, precio_base, requiere_presa) VALUES
-(1, 'Cuarto de Pollo',    20.00, TRUE),
-(1, 'Medio Pollo',        38.00, TRUE),
-(1, 'Pollo Entero',       72.00, FALSE);
-
--- ── Salchipapas ───────────────────────────────────────────────────────────────
-INSERT INTO productos (categoria_id, nombre, precio_base, requiere_presa) VALUES
-(2, 'Salchipapa Simple',   15.00, FALSE),
-(2, 'Salchipapa Especial', 20.00, FALSE),
-(2, 'Salchipapa Familiar', 35.00, FALSE);
-
--- ── Bebidas ───────────────────────────────────────────────────────────────────
-INSERT INTO productos (categoria_id, nombre, precio_base, requiere_presa) VALUES
-(3, 'Gaseosa Personal',  5.00, FALSE),
-(3, 'Gaseosa 1.5L',     10.00, FALSE),
-(3, 'Jugo Natural',      8.00, FALSE);
-
--- ── Extras ────────────────────────────────────────────────────────────────────
-INSERT INTO productos (categoria_id, nombre, precio_base, requiere_presa) VALUES
-(4, 'Ensalada',    5.00, FALSE),
-(4, 'Porción Papa', 8.00, FALSE);
-
--- ── Asociar presas a productos que las requieren ──────────────────────────────
--- Cuarto de Pollo (id=1) acepta todas las presas
-INSERT INTO producto_presas (producto_id, presa_id)
-SELECT 1, id FROM presas;
-
--- Medio Pollo (id=2) acepta todas las presas
-INSERT INTO producto_presas (producto_id, presa_id)
-SELECT 2, id FROM presas;
+-- Stock básico de referencia (ajustar a la realidad del local)
+INSERT INTO stock_inventory (branch_id, item_name, quantity, min_stock, unit) VALUES
+(1, 'Pollo (unidades)', 40, 10, 'unidad'),
+(1, 'Papa (kg)',         25, 5,  'kg'),
+(1, 'Aceite (L)',        10, 2,  'L'),
+(1, 'Envases delivery',  100, 20, 'unidad');
