@@ -21,8 +21,11 @@ export default function LoginPage() {
   const submit = async (value: string) => {
     if (value.length < 4) return;
     try {
-      await loginWithPin(value);
-      navigate("/", { replace: true });
+      const user = await loginWithPin(value);
+      // El admin entra directo al panel de administración (no vende por
+      // defecto, así que no debe pasar por la apertura de caja); el cajero
+      // entra al POS, donde sí se le exige abrir caja antes de vender.
+      navigate(user.role === "admin" ? "/admin" : "/", { replace: true });
     } catch (e) {
       setError(e instanceof ApiError ? e.message : "No se pudo iniciar sesión");
       setPin("");

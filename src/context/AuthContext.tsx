@@ -6,7 +6,7 @@ interface AuthState {
   user: AppUser | null;
   branch: Branch | null;
   loading: boolean;
-  loginWithPin: (pin: string) => Promise<void>;
+  loginWithPin: (pin: string) => Promise<AppUser>;
   logout: () => void;
 }
 
@@ -35,6 +35,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setBranch(data.branch);
       localStorage.setItem(STORAGE_USER, JSON.stringify(data.user));
       localStorage.setItem(STORAGE_BRANCH, JSON.stringify(data.branch));
+      return data.user; // se devuelve para poder redirigir según el rol sin esperar al re-render
     } finally {
       setLoading(false);
     }
