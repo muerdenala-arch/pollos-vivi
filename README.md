@@ -53,3 +53,5 @@ Cambiar estos PIN antes de usar en producción real.
 ## Fuera de alcance de esta reescritura
 
 Para mantener el foco en lo pedido (endpoints `/api`, Neon, Cloudinary, mobile-first), quedaron fuera del sistema anterior: WebSockets en tiempo real, impresión automática de tickets y reportes avanzados. El módulo de caja/arqueo, en cambio, sí se corrigió: pasó de `localStorage` a la tabla `cash_registers` en Neon.
+
+<!-- redeploy trigger: forzar build nuevo con env vars ya configuradas -->
