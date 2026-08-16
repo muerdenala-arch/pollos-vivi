@@ -44,7 +44,7 @@
 
 .icon-btn:active { transform: scale(0.94); }
 
-/* ── PIN pad (login) ───────────────────────────────────────────────────── */
+/* ── PIN pad genérico (reusado por Apertura de caja / errores de pago) ──── */
 
 .pin-screen {
   flex: 1;
@@ -61,47 +61,156 @@
 .pin-title { font-size: 1.4rem; font-weight: 800; margin: 0; }
 .pin-subtitle { color: var(--color-text-muted); margin: -0.75rem 0 0; font-size: 0.9rem; }
 
-.pin-dots {
-  display: flex;
-  gap: 0.75rem;
-}
-.pin-dot {
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-  border: 2px solid var(--color-border);
-  transition: background 0.15s, border-color 0.15s;
-}
-.pin-dot.filled {
-  background: var(--color-accent);
-  border-color: var(--color-accent);
-}
-
-.pin-keypad {
-  display: grid;
-  grid-template-columns: repeat(3, 72px);
-  gap: 0.85rem;
-  margin-top: 0.5rem;
-}
-.pin-key {
-  width: 72px;
-  height: 72px;
-  border-radius: 999px;
-  background: var(--color-bg-elevated);
-  box-shadow: var(--shadow-card);
-  font-size: 1.5rem;
-  font-weight: 600;
-  display: grid;
-  place-items: center;
-}
-.pin-key:active { transform: scale(0.93); background: var(--color-bg-sunken); }
-.pin-key.pin-key-ghost { box-shadow: none; background: transparent; }
-
 .pin-error {
   color: var(--color-danger);
   font-size: 0.9rem;
   min-height: 1.2em;
 }
+
+/* ── Login — atmósfera inmersiva (21st.dev style) ──────────────────────── */
+
+.login-atmosphere {
+  position: relative;
+  min-height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: #07090e;
+  padding: 1.5rem;
+}
+
+.login-glow {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(60px);
+  pointer-events: none;
+  z-index: 0;
+}
+.login-glow-a {
+  width: 480px;
+  height: 480px;
+  top: -140px;
+  left: -100px;
+  background: radial-gradient(circle, rgba(245, 158, 11, 0.20) 0%, rgba(234, 88, 12, 0.10) 50%, transparent 72%);
+}
+.login-glow-b {
+  width: 420px;
+  height: 420px;
+  bottom: -160px;
+  right: -100px;
+  background: radial-gradient(circle, rgba(249, 115, 22, 0.18) 0%, rgba(217, 119, 6, 0.08) 55%, transparent 75%);
+}
+
+.login-card {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 400px;
+  margin: 0 1rem;
+  padding: 2rem;
+  border-radius: 1.75rem;
+  text-align: center;
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(28px);
+  -webkit-backdrop-filter: blur(28px);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.55), 0 0 70px -15px rgba(249, 115, 22, 0.18);
+}
+
+.login-logo-wrap {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  margin-bottom: 1.1rem;
+}
+.login-logo-halo {
+  position: absolute;
+  inset: -14px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(249, 115, 22, 0.45) 0%, transparent 70%);
+  filter: blur(10px);
+  z-index: 0;
+}
+
+.login-card .pin-title { color: #f8fafc; }
+.login-card .pin-subtitle { color: rgba(203, 213, 225, 0.75); margin-top: -0.6rem; margin-bottom: 1.4rem; }
+
+.pin-dots-wrap {
+  display: inline-block;
+  border-radius: 999px;
+  padding: 0.5rem 0.9rem;
+  margin: 0 auto 0.6rem;
+}
+.pin-dots {
+  display: flex;
+  justify-content: center;
+  gap: 0.85rem;
+}
+.pin-dot-slot {
+  position: relative;
+  width: 16px;
+  height: 16px;
+  display: grid;
+  place-items: center;
+}
+.pin-dot {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.18);
+  grid-area: 1 / 1;
+}
+.pin-dot.filled {
+  border: none;
+  background: linear-gradient(135deg, #f59e0b, #f97316);
+  box-shadow: 0 0 12px -1px rgba(249, 115, 22, 0.7);
+}
+
+.pin-status {
+  min-height: 1.4rem;
+  margin-bottom: 0.6rem;
+  font-size: 0.85rem;
+}
+.pin-loading {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: #fbbf24;
+}
+.pin-error-flash {
+  color: #fca5a5;
+  font-weight: 600;
+}
+.spin {
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.pin-keypad {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.75rem;
+  margin-top: 0.9rem;
+}
+.pin-key {
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  color: #f1f5f9;
+  font-size: 1.4rem;
+  font-weight: 600;
+  display: grid;
+  place-items: center;
+}
+.pin-key:hover:not(:disabled) { border-color: rgba(249, 115, 22, 0.4); }
+.pin-key:disabled { opacity: 0.45; }
+.pin-key.pin-key-ghost { background: transparent; border: none; pointer-events: none; }
+.pin-key-backspace { color: #cbd5e1; }
 
 /* ── POS: catálogo ──────────────────────────────────────────────────────── */
 
