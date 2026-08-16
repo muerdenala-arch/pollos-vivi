@@ -2,12 +2,34 @@ import { useState } from "react";
 import { useCart } from "../context/CartContext";
 import { DISPATCH_MODES, type DispatchMode } from "@shared/catalog";
 import { PaymentSheet } from "./PaymentSheet";
+import { api, ApiError } from "../lib/api";
+import { useToast } from "./Toast";
+import type { Order } from "@shared/types";
 
 const bs = (n: number) => `Bs. ${n.toFixed(2)}`;
 
 export function CartSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const { lines, orderType, setOrderType, changeQty, removeLine, total } = useCart();
+  const { lines, orderType, setOrderType, changeQty, removeLine, total, clear } = useCart();
   const [paying, setPaying] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const { show } = useToast();
+
+  const guardarPedido = async () => {
+    setSaving(true);
+    try {
+      const order = await api.post<Order>("/orders", {
+        order_type: orderType,
+        items: lines.map((l) => ({ productoId: l.productoId, presaId: l.presaId, cantidad: l.cantidad })),
+      });
+      show(`📋 Pedido ${order.ticket_number} guardado — se puede cobrar después`);
+      clear();
+      onClose();
+    } catch (e) {
+      show(e instanceof ApiError ? e.message : "No se pudo guardar el pedido");
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const isMobile = () => window.innerWidth < 768;
 
@@ -62,6 +84,9 @@ export function CartSheet({ open, onClose }: { open: boolean; onClose: () => voi
           </div>
           <button className="btn btn-primary" disabled={lines.length === 0} onClick={() => setPaying(true)}>
             Cobrar
+          </button>
+          <button className="btn btn-secondary" disabled={lines.length === 0 || saving} onClick={guardarPedido}>
+            {saving ? "Guardando…" : "📋 Guardar sin cobrar"}
           </button>
         </div>
       </aside>

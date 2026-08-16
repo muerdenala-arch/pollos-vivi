@@ -6,6 +6,7 @@ import { useCatalog } from "../hooks/useCatalog";
 import { useToast } from "../components/Toast";
 import { ThemeToggle } from "../components/ThemeToggle";
 import { CartSheet } from "../components/CartSheet";
+import { PendingOrdersSheet } from "../components/PendingOrdersSheet";
 import { useNavigate } from "react-router-dom";
 
 const bs = (n: number) => `Bs. ${n.toFixed(2)}`;
@@ -14,6 +15,7 @@ export default function PosPage() {
   const [selectedCat, setSelectedCat] = useState<number | null>(null);
   const [search, setSearch] = useState("");
   const [cartOpen, setCartOpen] = useState(false);
+  const [pendingOpen, setPendingOpen] = useState(false);
   const { addVariante, itemCount, total } = useCart();
   const { user, branch, logout } = useAuth();
   const { categorias, variantes: allVariantes, loading } = useCatalog();
@@ -42,6 +44,7 @@ export default function PosPage() {
             {user?.name} · {branch?.name}
           </span>
           <ThemeToggle />
+          <button className="icon-btn" onClick={() => setPendingOpen(true)} title="Pedidos pendientes">📋</button>
           <button className="icon-btn" onClick={() => navigate("/cocina")} title="Pantalla de cocina">🍳</button>
           {user?.role === "admin" && (
             <button className="icon-btn" onClick={() => navigate("/admin")} title="Panel admin">⚙️</button>
@@ -99,6 +102,8 @@ export default function PosPage() {
 
         <CartSheet open={cartOpen} onClose={() => setCartOpen(false)} />
       </div>
+
+      <PendingOrdersSheet open={pendingOpen} onClose={() => setPendingOpen(false)} />
 
       {itemCount > 0 && (
         <button className="cart-fab-bar" onClick={() => setCartOpen(true)}>

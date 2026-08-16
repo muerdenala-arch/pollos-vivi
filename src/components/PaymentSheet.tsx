@@ -6,8 +6,16 @@ import type { Order, PaymentMethod, QrCode } from "@shared/types";
 
 const bs = (n: number) => `Bs. ${n.toFixed(2)}`;
 
-export function PaymentSheet({ onClose, onDone }: { onClose: () => void; onDone: () => void }) {
-  const { lines, orderType, total, clear } = useCart();
+interface PaymentSheetProps {
+  onClose: () => void;
+  onDone: () => void;
+  /** Si se pasa, cobra un pedido ya guardado (Pendiente) en vez del carrito actual. */
+  existingOrder?: Order;
+}
+
+export function PaymentSheet({ onClose, onDone, existingOrder }: PaymentSheetProps) {
+  const { lines, orderType, total: cartTotal, clear } = useCart();
+  const total = existingOrder ? Number(existingOrder.total) : cartTotal;
   const { show } = useToast();
   const [method, setMethod] = useState<PaymentMethod>("Efectivo");
   const [receiptDataUri, setReceiptDataUri] = useState<string | null>(null);
@@ -38,10 +46,12 @@ export function PaymentSheet({ onClose, onDone }: { onClose: () => void; onDone:
     setSubmitting(true);
     setError("");
     try {
-      const order = await api.post<Order>("/orders", {
-        order_type: orderType,
-        items: lines.map((l) => ({ productoId: l.productoId, presaId: l.presaId, cantidad: l.cantidad })),
-      });
+      const order =
+        existingOrder ??
+        (await api.post<Order>("/orders", {
+          order_type: orderType,
+          items: lines.map((l) => ({ productoId: l.productoId, presaId: l.presaId, cantidad: l.cantidad })),
+        }));
 
       let receiptUrl: string | null = null;
       if (method === "QR" && receiptDataUri) {
@@ -56,7 +66,7 @@ export function PaymentSheet({ onClose, onDone }: { onClose: () => void; onDone:
       });
 
       show(`✅ Pedido ${order.ticket_number} cobrado`);
-      clear();
+      if (!existingOrder) clear();
       onDone();
     } catch (e) {
       setError(e instanceof ApiError ? e.message : "No se pudo procesar el cobro");
