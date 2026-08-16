@@ -19,7 +19,7 @@ async function handler(req: VercelRequest, res: VercelResponse) {
               items, total, payment_method, receipt_url, status, created_at
        FROM orders
        WHERE ($1::int IS NULL OR branch_id = $1)
-         AND ($2::text IS NULL OR status = $2)
+         AND ($2::text IS NULL OR status = $2::order_status)
        ORDER BY created_at DESC
        LIMIT $3`,
       [branchId ?? null, status, limit]
