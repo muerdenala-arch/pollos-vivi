@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { useCart } from "../context/CartContext";
 import { DISPATCH_MODES, type DispatchMode } from "@shared/catalog";
 import { PaymentSheet } from "./PaymentSheet";
@@ -58,22 +59,32 @@ export function CartSheet({ open, onClose }: { open: boolean; onClose: () => voi
               <p>El carrito está vacío.<br />Toca un producto para agregarlo.</p>
             </div>
           ) : (
-            lines.map((l) => (
-              <div className="cart-line" key={l.key}>
-                <div className="cart-line-top">
-                  <span className="cart-line-name">{l.nombre}</span>
-                  <button className="cart-line-remove" onClick={() => removeLine(l.key)} aria-label="Quitar">✕</button>
-                </div>
-                <div className="cart-line-row">
-                  <div className="qty-control">
-                    <button className="qty-btn" onClick={() => changeQty(l.key, -1)}>−</button>
-                    <span>{l.cantidad}</span>
-                    <button className="qty-btn" onClick={() => changeQty(l.key, 1)}>+</button>
+            <AnimatePresence initial={false}>
+              {lines.map((l) => (
+                <motion.div
+                  className="cart-line"
+                  key={l.key}
+                  layout
+                  initial={{ opacity: 0, height: 0, y: -8 }}
+                  animate={{ opacity: 1, height: "auto", y: 0 }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={{ duration: 0.2, ease: "easeOut" }}
+                >
+                  <div className="cart-line-top">
+                    <span className="cart-line-name">{l.nombre}</span>
+                    <button className="cart-line-remove" onClick={() => removeLine(l.key)} aria-label="Quitar">✕</button>
                   </div>
-                  <span className="cart-line-subtotal">{bs(l.precioUnitario * l.cantidad)}</span>
-                </div>
-              </div>
-            ))
+                  <div className="cart-line-row">
+                    <div className="qty-control">
+                      <button className="qty-btn" onClick={() => changeQty(l.key, -1)}>−</button>
+                      <span>{l.cantidad}</span>
+                      <button className="qty-btn" onClick={() => changeQty(l.key, 1)}>+</button>
+                    </div>
+                    <span className="cart-line-subtotal">{bs(l.precioUnitario * l.cantidad)}</span>
+                  </div>
+                </motion.div>
+              ))}
+            </AnimatePresence>
           )}
         </div>
 
@@ -82,9 +93,14 @@ export function CartSheet({ open, onClose }: { open: boolean; onClose: () => voi
             <span>Total</span>
             <span>{bs(total)}</span>
           </div>
-          <button className="btn btn-primary" disabled={lines.length === 0} onClick={() => setPaying(true)}>
+          <motion.button
+            className="btn btn-primary btn-cobrar"
+            disabled={lines.length === 0}
+            onClick={() => setPaying(true)}
+            whileTap={lines.length > 0 ? { scale: 0.97 } : undefined}
+          >
             Cobrar
-          </button>
+          </motion.button>
           <button className="btn btn-secondary" disabled={lines.length === 0 || saving} onClick={guardarPedido}>
             {saving ? "Guardando…" : "📋 Guardar sin cobrar"}
           </button>

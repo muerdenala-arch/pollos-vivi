@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { useCart } from "../context/CartContext";
 import { useAuth } from "../context/AuthContext";
 import { api, ApiError } from "../lib/api";
@@ -92,12 +93,8 @@ export function PaymentSheet({ onClose, onDone, existingOrder }: PaymentSheetPro
 
         <div className="cart-body">
           <div className="payment-methods">
-            <button className={`payment-method-btn ${method === "Efectivo" ? "active" : ""}`} onClick={() => setMethod("Efectivo")}>
-              💵 Efectivo
-            </button>
-            <button className={`payment-method-btn ${method === "QR" ? "active" : ""}`} onClick={() => setMethod("QR")}>
-              📱 QR
-            </button>
+            <PaymentMethodTab label="💵 Efectivo" active={method === "Efectivo"} onClick={() => setMethod("Efectivo")} group="method" />
+            <PaymentMethodTab label="📱 QR" active={method === "QR"} onClick={() => setMethod("QR")} group="method" />
           </div>
 
           {method === "QR" && (
@@ -105,13 +102,13 @@ export function PaymentSheet({ onClose, onDone, existingOrder }: PaymentSheetPro
               {qrCodes.length > 1 && (
                 <div className="payment-methods" style={{ marginBottom: 0 }}>
                   {qrCodes.map((qr) => (
-                    <button
+                    <PaymentMethodTab
                       key={qr.id}
-                      className={`payment-method-btn ${selectedQr?.id === qr.id ? "active" : ""}`}
+                      label={qr.alias}
+                      active={selectedQr?.id === qr.id}
                       onClick={() => setSelectedQr(qr)}
-                    >
-                      {qr.alias}
-                    </button>
+                      group="qr"
+                    />
                   ))}
                 </div>
               )}
@@ -155,29 +152,68 @@ export function PaymentSheet({ onClose, onDone, existingOrder }: PaymentSheetPro
 
         <div className="cart-footer">
           {error && <div className="pin-error">{error}</div>}
-          <button className="btn btn-primary" onClick={confirmar} disabled={submitting}>
+          <motion.button
+            className="btn btn-primary btn-cobrar"
+            onClick={confirmar}
+            disabled={submitting}
+            whileTap={!submitting ? { scale: 0.97 } : undefined}
+          >
             {submitting ? "Procesando…" : `Confirmar cobro ${bs(total)}`}
-          </button>
+          </motion.button>
         </div>
       </aside>
 
-      {zoomed && selectedQr && (
-        <div
-          onClick={() => setZoomed(false)}
-          style={{
-            position: "fixed", inset: 0, zIndex: 60,
-            background: "rgba(0,0,0,0.85)",
-            display: "grid", placeItems: "center",
-            padding: "2rem",
-          }}
-        >
-          <img
-            src={selectedQr.image_url}
-            alt={selectedQr.alias}
-            style={{ maxWidth: "min(90vw, 420px)", maxHeight: "80vh", borderRadius: "var(--radius-md)" }}
-          />
-        </div>
-      )}
+      <AnimatePresence>
+        {zoomed && selectedQr && (
+          <motion.div
+            onClick={() => setZoomed(false)}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            style={{
+              position: "fixed", inset: 0, zIndex: 60,
+              background: "rgba(0,0,0,0.85)",
+              display: "grid", placeItems: "center",
+              padding: "2rem",
+            }}
+          >
+            <motion.img
+              src={selectedQr.image_url}
+              alt={selectedQr.alias}
+              initial={{ scale: 0.85, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              transition={{ type: "spring", stiffness: 320, damping: 28 }}
+              style={{ maxWidth: "min(90vw, 420px)", maxHeight: "80vh", borderRadius: "var(--radius-md)" }}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
     </>
+  );
+}
+
+function PaymentMethodTab({
+  label,
+  active,
+  onClick,
+  group,
+}: {
+  label: string;
+  active: boolean;
+  onClick: () => void;
+  group: string;
+}) {
+  return (
+    <button className={`payment-method-btn ${active ? "active" : ""}`} onClick={onClick}>
+      {active && (
+        <motion.span
+          layoutId={`payment-indicator-${group}`}
+          className="pill-indicator"
+          transition={{ type: "spring", stiffness: 400, damping: 32 }}
+        />
+      )}
+      {label}
+    </button>
   );
 }

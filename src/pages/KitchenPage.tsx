@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
 import { api, ApiError } from "../lib/api";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../components/Toast";
@@ -95,11 +96,18 @@ export default function KitchenPage() {
             <p>No hay pedidos pendientes de preparar</p>
           </div>
         ) : (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: "0.85rem" }}>
-            {sorted.map((o) => (
-              <OrderCard key={o.id} order={o} onAdvance={() => avanzar(o)} onCancel={() => cancelar(o)} />
-            ))}
-          </div>
+          <motion.div
+            style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: "0.85rem" }}
+            initial="hidden"
+            animate="show"
+            variants={{ hidden: {}, show: { transition: { staggerChildren: 0.05 } } }}
+          >
+            <AnimatePresence>
+              {sorted.map((o) => (
+                <OrderCard key={o.id} order={o} onAdvance={() => avanzar(o)} onCancel={() => cancelar(o)} />
+              ))}
+            </AnimatePresence>
+          </motion.div>
         )}
       </div>
     </div>
@@ -113,15 +121,16 @@ function OrderCard({ order, onAdvance, onCancel }: { order: Order; onAdvance: ()
   const nextLabel = NEXT_LABEL[order.status];
 
   return (
-    <div
-      className="admin-card"
-      style={{
-        marginBottom: 0,
-        border: urgente ? "2px solid var(--color-danger)" : undefined,
-      }}
+    <motion.div
+      className={`admin-card kitchen-card ${urgente ? "kitchen-card-urgent" : ""}`}
+      style={{ marginBottom: 0 }}
+      layout
+      variants={{ hidden: { opacity: 0, y: 14, scale: 0.97 }, show: { opacity: 1, y: 0, scale: 1 } }}
+      exit={{ opacity: 0, scale: 0.95 }}
+      transition={{ type: "spring", stiffness: 300, damping: 26 }}
     >
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem" }}>
-        <span style={{ fontWeight: 800, fontSize: "1.1rem" }}>{order.ticket_number}</span>
+        <span style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: "1.15rem" }}>{order.ticket_number}</span>
         <span
           style={{
             fontSize: "0.78rem",
@@ -147,9 +156,9 @@ function OrderCard({ order, onAdvance, onCancel }: { order: Order; onAdvance: ()
         ))}
       </ul>
       {nextLabel && (
-        <button className="btn btn-primary" onClick={onAdvance}>
+        <motion.button className="btn btn-primary" onClick={onAdvance} whileTap={{ scale: 0.97 }}>
           {nextLabel}
-        </button>
+        </motion.button>
       )}
       {confirmando ? (
         <div style={{ display: "flex", gap: "0.5rem", marginTop: "0.5rem" }}>
@@ -165,6 +174,6 @@ function OrderCard({ order, onAdvance, onCancel }: { order: Order; onAdvance: ()
           ✕ Cancelar pedido
         </button>
       )}
-    </div>
+    </motion.div>
   );
 }

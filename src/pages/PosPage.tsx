@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import type { Variante } from "@shared/catalog";
 import { useCart } from "../context/CartContext";
 import { useAuth } from "../context/AuthContext";
@@ -9,7 +10,7 @@ import { CartSheet } from "../components/CartSheet";
 import { PendingOrdersSheet } from "../components/PendingOrdersSheet";
 import { CashRegisterSheet } from "../components/CashRegisterSheet";
 import { Logo } from "../components/Logo";
-import { ClipboardList, ChefHat, LogOut, Wallet } from "lucide-react";
+import { ClipboardList, ChefHat, LogOut, Lock } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 const bs = (n: number) => `Bs. ${n.toFixed(2)}`;
@@ -47,12 +48,18 @@ export default function PosPage() {
           Pollos Vivi
         </div>
         <div className="topbar-actions">
-          <span className="topbar-user-label" style={{ fontSize: "0.85rem", color: "var(--color-text-muted)" }}>
-            {user?.name} · {branch?.name}
+          {/* Dentro del POS la caja siempre está abierta (CashRegisterGate lo garantiza). */}
+          <span className="caja-chip">
+            <span className="caja-chip-dot" />
+            Caja abierta
+          </span>
+          <span className="topbar-user-label" style={{ fontSize: "0.85rem", color: "var(--color-text-muted)", display: "flex", alignItems: "center", gap: "0.4rem" }}>
+            <span className="header-avatar">{user?.name?.charAt(0) ?? "?"}</span>
+            {branch?.name}
           </span>
           <ThemeToggle />
           <button className="icon-btn" onClick={() => setPendingOpen(true)} title="Pedidos pendientes"><ClipboardList size={18} /></button>
-          <button className="icon-btn" onClick={() => setCashOpen(true)} title="Cerrar caja"><Wallet size={18} /></button>
+          <button className="icon-btn icon-btn-critical" onClick={() => setCashOpen(true)} title="Cerrar caja"><Lock size={18} /></button>
           <button className="icon-btn" onClick={() => navigate("/cocina")} title="Pantalla de cocina"><ChefHat size={18} /></button>
           <button className="icon-btn" onClick={logout} title="Cerrar sesión"><LogOut size={18} /></button>
         </div>
@@ -69,17 +76,9 @@ export default function PosPage() {
           </div>
 
           <div className="cat-tabs">
-            <button className={`cat-tab ${selectedCat === null ? "active" : ""}`} onClick={() => setSelectedCat(null)}>
-              Todos
-            </button>
+            <CatTab label="Todos" active={selectedCat === null} onClick={() => setSelectedCat(null)} />
             {categorias.map((c) => (
-              <button
-                key={c.id}
-                className={`cat-tab ${selectedCat === c.id ? "active" : ""}`}
-                onClick={() => setSelectedCat(c.id)}
-              >
-                {c.nombre}
-              </button>
+              <CatTab key={c.id} label={c.nombre} active={selectedCat === c.id} onClick={() => setSelectedCat(c.id)} />
             ))}
           </div>
 
@@ -94,14 +93,17 @@ export default function PosPage() {
               <p>Sin resultados</p>
             </div>
           ) : (
-            <div className="product-grid">
+            <motion.div
+              className="product-grid"
+              key={`${selectedCat ?? "all"}-${search}`}
+              initial="hidden"
+              animate="show"
+              variants={{ hidden: {}, show: { transition: { staggerChildren: 0.02 } } }}
+            >
               {variantes.map((v) => (
-                <button key={v.key} className="product-card" onClick={() => onAdd(v)}>
-                  <span className="product-name">{v.nombreCorto}</span>
-                  <span className="product-price">{bs(v.precio)}</span>
-                </button>
+                <ProductCard key={v.key} variante={v} onAdd={onAdd} />
               ))}
-            </div>
+            </motion.div>
           )}
         </div>
 
@@ -111,15 +113,81 @@ export default function PosPage() {
       <PendingOrdersSheet open={pendingOpen} onClose={() => setPendingOpen(false)} />
       <CashRegisterSheet open={cashOpen} onClose={() => setCashOpen(false)} />
 
-      {itemCount > 0 && (
-        <button className="cart-fab-bar" onClick={() => setCartOpen(true)}>
-          <span>
-            <span className="cart-fab-badge">{itemCount}</span>
-            Ver pedido
-          </span>
-          <span className="cart-fab-total">{bs(total)}</span>
-        </button>
-      )}
+      <AnimatePresence>
+        {itemCount > 0 && (
+          <motion.button
+            className="cart-fab-bar"
+            onClick={() => setCartOpen(true)}
+            initial={{ y: 80, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 80, opacity: 0 }}
+            transition={{ type: "spring", stiffness: 320, damping: 28 }}
+            whileTap={{ scale: 0.97 }}
+          >
+            <span>
+              <span className="cart-fab-badge">{itemCount}</span>
+              Ver pedido
+            </span>
+            <span className="cart-fab-total">{bs(total)}</span>
+          </motion.button>
+        )}
+      </AnimatePresence>
     </div>
+  );
+}
+
+function CatTab({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
+  return (
+    <button className={`cat-tab ${active ? "active" : ""}`} onClick={onClick}>
+      {active && (
+        <motion.span
+          layoutId="cat-tab-indicator"
+          className="cat-tab-indicator"
+          transition={{ type: "spring", stiffness: 400, damping: 32 }}
+        />
+      )}
+      {label}
+    </button>
+  );
+}
+
+const cardVariants = {
+  hidden: { opacity: 0, y: 10, scale: 0.96 },
+  show: { opacity: 1, y: 0, scale: 1 },
+};
+
+function ProductCard({ variante, onAdd }: { variante: Variante; onAdd: (v: Variante) => void }) {
+  const [pulse, setPulse] = useState(0);
+
+  const handleClick = () => {
+    onAdd(variante);
+    setPulse((p) => p + 1);
+  };
+
+  return (
+    <motion.button
+      className="product-card"
+      onClick={handleClick}
+      variants={cardVariants}
+      whileTap={{ scale: 0.94 }}
+      whileHover={{ y: -2 }}
+    >
+      <span className="product-name">{variante.nombreCorto}</span>
+      <span className="product-price">{bs(variante.precio)}</span>
+      <AnimatePresence>
+        {pulse > 0 && (
+          <motion.span
+            key={pulse}
+            className="product-add-fly"
+            initial={{ opacity: 0, y: 0, scale: 0.6 }}
+            animate={{ opacity: [0, 1, 1, 0], y: -18, scale: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.55, ease: "easeOut" }}
+          >
+            +1
+          </motion.span>
+        )}
+      </AnimatePresence>
+    </motion.button>
   );
 }

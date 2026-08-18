@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { motion } from "framer-motion";
 import { api, ApiError } from "../lib/api";
 import { useAuth } from "../context/AuthContext";
 import { ThemeToggle } from "../components/ThemeToggle";
@@ -66,6 +67,13 @@ export default function AdminPage() {
                 className={`admin-nav-item ${tab === id ? "active" : ""}`}
                 onClick={() => selectTab(id)}
               >
+                {tab === id && (
+                  <motion.span
+                    layoutId="admin-nav-indicator"
+                    className="admin-nav-indicator"
+                    transition={{ type: "spring", stiffness: 400, damping: 34 }}
+                  />
+                )}
                 <Icon size={18} />
                 {label}
               </button>
@@ -120,25 +128,32 @@ function ReportesPanel() {
           <div style={{ fontSize: "0.78rem", color: "var(--color-text-muted)" }}>Reporte de ventas</div>
         </div>
       </div>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: "0.75rem", marginBottom: "0.75rem" }}>
+      <motion.div
+        style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: "0.75rem", marginBottom: "0.75rem" }}
+        initial="hidden"
+        animate="show"
+        variants={{ hidden: {}, show: { transition: { staggerChildren: 0.06 } } }}
+      >
         <StatCard label="Ventas de hoy" value={bs(data.resumenHoy.total)} />
         <StatCard label="Efectivo" value={bs(data.resumenHoy.efectivo)} />
         <StatCard label="QR" value={bs(data.resumenHoy.qr)} />
         <StatCard label="Pedidos hoy" value={String(data.resumenHoy.pedidos)} />
-      </div>
+      </motion.div>
 
       <div className="admin-card">
         <h3>Ventas — últimos 7 días</h3>
         <div style={{ display: "flex", alignItems: "flex-end", gap: "0.6rem", height: 140, padding: "0.5rem 0" }}>
           {data.porDia.map((d) => (
             <div key={d.dia} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: "0.3rem" }}>
-              <div
+              <motion.div
                 title={bs(d.total)}
+                initial={{ height: 0 }}
+                animate={{ height: Math.max(4, (d.total / maxDia) * 110) }}
+                transition={{ type: "spring", stiffness: 120, damping: 18 }}
                 style={{
                   width: "100%",
                   maxWidth: 36,
-                  height: Math.max(4, (d.total / maxDia) * 110),
-                  background: "var(--color-accent)",
+                  background: "var(--gradient-crispy)",
                   borderRadius: "6px 6px 0 0",
                 }}
               />
@@ -169,10 +184,14 @@ function ReportesPanel() {
 
 function StatCard({ label, value }: { label: string; value: string }) {
   return (
-    <div className="admin-card" style={{ marginBottom: 0, textAlign: "center" }}>
+    <motion.div
+      className="admin-card"
+      style={{ marginBottom: 0, textAlign: "center" }}
+      variants={{ hidden: { opacity: 0, y: 10, scale: 0.96 }, show: { opacity: 1, y: 0, scale: 1 } }}
+    >
       <div style={{ fontSize: "0.78rem", color: "var(--color-text-muted)", fontWeight: 600 }}>{label}</div>
-      <div style={{ fontSize: "1.35rem", fontWeight: 800, color: "var(--color-accent)" }}>{value}</div>
-    </div>
+      <div style={{ fontFamily: "var(--font-display)", fontSize: "1.4rem", fontWeight: 800, color: "var(--color-accent)", fontVariantNumeric: "tabular-nums" }}>{value}</div>
+    </motion.div>
   );
 }
 
@@ -707,8 +726,20 @@ function StockPanel() {
         <thead><tr><th>Ítem</th><th>Cantidad</th><th>Mínimo</th><th>Unidad</th></tr></thead>
         <tbody>
           {items.map((it) => (
-            <tr key={it.id} style={it.quantity <= it.min_stock ? { color: "var(--color-danger)" } : undefined}>
-              <td>{it.item_name}</td>
+            <tr key={it.id}>
+              <td>
+                {it.item_name}{" "}
+                {it.quantity <= it.min_stock && (
+                  <motion.span
+                    className="badge badge-lowstock"
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ type: "spring", stiffness: 400, damping: 22 }}
+                  >
+                    <span className="badge-lowstock-dot" /> Stock bajo
+                  </motion.span>
+                )}
+              </td>
               <td>
                 <div className="qty-control">
                   <button className="qty-btn" onClick={() => updateQty(it.id, Math.max(0, it.quantity - 1))}>−</button>

@@ -16,6 +16,8 @@
   --color-accent-contrast: #ffffff;
 
   --color-gold: #d97706; /* dorado / crocante */
+  --color-gold-soft: #fbbf24;
+  --color-brasa-deep: #7c2d12;
   --color-success: #15803d;
   --color-danger: #dc2626;
   --color-info: #2563eb;
@@ -24,12 +26,24 @@
   --color-primary: var(--color-accent);
   --color-secondary: var(--color-gold);
 
+  /* Degradado "crispy" — marca, botones clave, avatares, indicadores activos */
+  --gradient-crispy: linear-gradient(135deg, #fbbf24 0%, #f97316 55%, #c2410c 100%);
+  /* Wash ambiental muy sutil para fondos de página en modo claro */
+  --gradient-ambient: radial-gradient(120% 100% at 15% -10%, rgba(251, 191, 36, 0.10) 0%, transparent 55%),
+    radial-gradient(100% 90% at 100% 0%, rgba(194, 65, 12, 0.06) 0%, transparent 50%);
+  --glass-bg: rgba(255, 255, 255, 0.55);
+  --glass-border: rgba(255, 255, 255, 0.6);
+  --glow-accent: 0 0 0 1px rgba(194, 65, 12, 0.12), 0 4px 18px -4px rgba(194, 65, 12, 0.25);
+  --shadow-elevated: 0 1px 2px rgba(42, 29, 20, 0.06), 0 8px 24px -8px rgba(42, 29, 20, 0.16),
+    0 20px 40px -20px rgba(194, 65, 12, 0.12);
+
   --shadow-sheet: 0 -8px 30px rgba(42, 29, 20, 0.18);
   --shadow-card: 0 1px 3px rgba(42, 29, 20, 0.08), 0 1px 2px rgba(42, 29, 20, 0.06);
   --radius-sm: 8px;
   --radius-md: 14px;
   --radius-lg: 20px;
-  --font-sans: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-sans: "Inter", -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-display: "Bricolage Grotesque", var(--font-sans);
 }
 
 /* Oscuro — estilo "dashboard moderno" (slate profundo + acento naranja),
@@ -49,9 +63,20 @@
   --color-accent-contrast: #0b0f19;
 
   --color-gold: #f0a83c;
+  --color-gold-soft: #fcd34d;
+  --color-brasa-deep: #431407;
   --color-success: #4ade80;
   --color-danger: #f87171;
   --color-info: #60a5fa;
+
+  --gradient-crispy: linear-gradient(135deg, #fcd34d 0%, #f97316 55%, #ea580c 100%);
+  --gradient-ambient: radial-gradient(90% 70% at 10% -10%, rgba(240, 168, 60, 0.10) 0%, transparent 60%),
+    radial-gradient(80% 60% at 100% 0%, rgba(240, 112, 59, 0.08) 0%, transparent 55%);
+  --glass-bg: rgba(15, 23, 42, 0.6);
+  --glass-border: rgba(255, 255, 255, 0.1);
+  --glow-accent: 0 0 0 1px rgba(240, 168, 60, 0.18), 0 0 24px -4px rgba(240, 112, 59, 0.45);
+  --shadow-elevated: 0 1px 2px rgba(0, 0, 0, 0.4), 0 12px 28px -8px rgba(0, 0, 0, 0.55),
+    0 0 40px -18px rgba(240, 112, 59, 0.35);
 
   --shadow-sheet: 0 -8px 30px rgba(0, 0, 0, 0.55);
   --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.45), 0 1px 2px rgba(0, 0, 0, 0.35);
@@ -65,11 +90,24 @@ html, body, #root {
 
 body {
   margin: 0;
-  background: var(--color-bg);
+  background: var(--gradient-ambient), var(--color-bg);
+  background-attachment: fixed;
   color: var(--color-text);
   font-family: var(--font-sans);
   -webkit-tap-highlight-color: transparent;
   overscroll-behavior-y: contain;
+}
+
+/* Respeta la preferencia del sistema: desactiva loops infinitos y anima
+   transiciones al mínimo indispensable (Framer Motion también lo consulta
+   por componente, esto cubre las animaciones puramente CSS). */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 button, input {
