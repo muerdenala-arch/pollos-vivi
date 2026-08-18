@@ -182,6 +182,7 @@ function StatCard({ label, value }: { label: string; value: string }) {
 
 function PedidosPanel() {
   const [orders, setOrders] = useState<Order[]>([]);
+  const [zoomUrl, setZoomUrl] = useState<string | null>(null);
   useEffect(() => {
     api.get<Order[]>("/orders?limit=50").then(setOrders).catch(() => {});
   }, []);
@@ -190,7 +191,7 @@ function PedidosPanel() {
       <h3>Últimos pedidos</h3>
       <table className="admin-table">
         <thead>
-          <tr><th>Ticket</th><th>Tipo</th><th>Total</th><th>Pago</th><th>Estado</th></tr>
+          <tr><th>Ticket</th><th>Tipo</th><th>Total</th><th>Pago</th><th>Comprobante</th><th>Estado</th></tr>
         </thead>
         <tbody>
           {orders.map((o) => (
@@ -199,12 +200,33 @@ function PedidosPanel() {
               <td>{o.order_type}</td>
               <td>{bs(o.total)}</td>
               <td>{o.payment_method ?? "—"}</td>
+              <td>
+                {o.receipt_url ? (
+                  <button onClick={() => setZoomUrl(o.receipt_url)} style={{ padding: 0, borderRadius: "var(--radius-sm)", overflow: "hidden" }} title="Ver comprobante">
+                    <img src={o.receipt_url} alt={`Comprobante ${o.ticket_number}`} style={{ width: 36, height: 36, objectFit: "cover", display: "block" }} />
+                  </button>
+                ) : "—"}
+              </td>
               <td><StatusBadge status={o.status} /></td>
             </tr>
           ))}
         </tbody>
       </table>
       {orders.length === 0 && <p style={{ color: "var(--color-text-faint)" }}>Sin pedidos todavía.</p>}
+
+      {zoomUrl && (
+        <div
+          onClick={() => setZoomUrl(null)}
+          style={{
+            position: "fixed", inset: 0, zIndex: 60,
+            background: "rgba(0,0,0,0.85)",
+            display: "grid", placeItems: "center",
+            padding: "2rem",
+          }}
+        >
+          <img src={zoomUrl} alt="Comprobante" style={{ maxWidth: "min(90vw, 420px)", maxHeight: "80vh", borderRadius: "var(--radius-md)" }} />
+        </div>
+      )}
     </div>
   );
 }
