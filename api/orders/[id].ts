@@ -8,7 +8,7 @@ const SELECT_ORDER = `SELECT id, ticket_number, branch_id, cashier_id, cash_regi
        items, total, payment_method, receipt_url, status, created_at FROM orders WHERE id = $1`;
 
 async function handler(req: VercelRequest, res: VercelResponse) {
-  getAuthUser(req);
+  const user = getAuthUser(req);
   const id = Number(req.query.id);
 
   if (req.method === "GET") {
@@ -24,9 +24,16 @@ async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method === "PATCH") {
     const { status, payment_method, receipt_url } = req.body ?? {};
 
-    const current = await queryOne<Order>(`SELECT status FROM orders WHERE id = $1`, [id]);
+    const current = await queryOne<Order>(`SELECT status, branch_id FROM orders WHERE id = $1`, [id]);
     if (!current) {
       res.status(404).json({ error: "Pedido no encontrado" });
+      return;
+    }
+    // Un cajero solo puede tocar pedidos de su propia sucursal — sin esto,
+    // cualquier token válido podía modificar el pedido de cualquier local
+    // con solo adivinar/probar el id.
+    if (user.role !== "admin" && current.branch_id !== user.branchId) {
+      res.status(403).json({ error: "No puedes modificar pedidos de otra sucursal" });
       return;
     }
     // Entregado/Cancelado son estados finales: no se pueden reabrir ni

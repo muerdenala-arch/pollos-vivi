@@ -101,6 +101,7 @@ export default function AdminPage() {
 }
 
 const bs = (n: number) => `Bs. ${Number(n).toFixed(2)}`;
+const COLOR_PRESETS = ["primary", "secondary", "info", "gold", "success", "danger"];
 
 interface ReportData {
   resumenHoy: { total: number; efectivo: number; qr: number; pedidos: number };
@@ -110,9 +111,18 @@ interface ReportData {
 
 function ReportesPanel() {
   const [data, setData] = useState<ReportData | null>(null);
+  const [branches, setBranches] = useState<Branch[]>([]);
+  const [branchId, setBranchId] = useState<number | "all">("all");
+
   useEffect(() => {
-    api.get<ReportData>("/reports?days=7").then(setData).catch(() => {});
+    api.get<Branch[]>("/branches").then(setBranches).catch(() => {});
   }, []);
+
+  useEffect(() => {
+    setData(null);
+    const q = branchId === "all" ? "" : `&branch_id=${branchId}`;
+    api.get<ReportData>(`/reports?days=7${q}`).then(setData).catch(() => {});
+  }, [branchId]);
 
   if (!data) return <p style={{ color: "var(--color-text-faint)" }}>Cargando reportes…</p>;
 
@@ -126,6 +136,13 @@ function ReportesPanel() {
           <div style={{ fontWeight: 800, fontSize: "1.05rem" }}>Pollos Vivi</div>
           <div style={{ fontSize: "0.78rem", color: "var(--color-text-muted)" }}>Reporte de ventas</div>
         </div>
+      </div>
+      <div className="field-row" style={{ maxWidth: 260 }}>
+        <label>Sucursal</label>
+        <select value={branchId} onChange={(e) => setBranchId(e.target.value === "all" ? "all" : Number(e.target.value))}>
+          <option value="all">Todas las sucursales</option>
+          {branches.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
+        </select>
       </div>
       <motion.div
         style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: "0.75rem", marginBottom: "0.75rem" }}
@@ -157,7 +174,9 @@ function ReportesPanel() {
                 }}
               />
               <span style={{ fontSize: "0.7rem", color: "var(--color-text-muted)" }}>
-                {new Date(d.dia).toLocaleDateString("es-BO", { weekday: "short" })}
+                {/* dia viene como "YYYY-MM-DD" ya resuelto en horario de Bolivia — se
+                    formatea fijando UTC para no volver a correrlo con el huso del navegador. */}
+                {new Date(`${d.dia}T00:00:00Z`).toLocaleDateString("es-BO", { weekday: "short", timeZone: "UTC" })}
               </span>
             </div>
           ))}
@@ -362,6 +381,7 @@ function SucursalesPanel() {
   const [branches, setBranches] = useState<Branch[]>([]);
   const [name, setName] = useState("");
   const [address, setAddress] = useState("");
+  const [phone, setPhone] = useState("");
   const { show } = useToast();
 
   const load = () => api.get<Branch[]>("/branches").then(setBranches).catch(() => {});
@@ -370,8 +390,8 @@ function SucursalesPanel() {
   const create = async () => {
     if (!name.trim()) return;
     try {
-      await api.post("/branches", { name, address });
-      setName(""); setAddress("");
+      await api.post("/branches", { name, address, phone: phone || null });
+      setName(""); setAddress(""); setPhone("");
       load();
       show("Sucursal creada");
     } catch (e) {
@@ -379,19 +399,34 @@ function SucursalesPanel() {
     }
   };
 
+  const toggleActiva = async (b: Branch) => {
+    try {
+      await api.patch("/branches", { id: b.id, is_active: !b.is_active });
+      load();
+    } catch (e) {
+      show(e instanceof ApiError ? e.message : "Error actualizando sucursal");
+    }
+  };
+
   return (
     <div className="admin-card">
       <h3>Sucursales</h3>
       <table className="admin-table">
-        <thead><tr><th>Nombre</th><th>Dirección</th><th>Activa</th></tr></thead>
+        <thead><tr><th>Nombre</th><th>Dirección</th><th>Teléfono</th><th>Activa</th></tr></thead>
         <tbody>
           {branches.map((b) => (
-            <tr key={b.id}><td>{b.name}</td><td>{b.address}</td><td>{b.is_active ? "Sí" : "No"}</td></tr>
+            <tr key={b.id}>
+              <td>{b.name}</td>
+              <td>{b.address ?? "—"}</td>
+              <td>{b.phone ?? "—"}</td>
+              <td><Switch checked={b.is_active} onChange={() => toggleActiva(b)} label={b.is_active ? "Desactivar" : "Activar"} /></td>
+            </tr>
           ))}
         </tbody>
       </table>
       <div className="field-row"><label>Nombre</label><input value={name} onChange={(e) => setName(e.target.value)} /></div>
       <div className="field-row"><label>Dirección</label><input value={address} onChange={(e) => setAddress(e.target.value)} /></div>
+      <div className="field-row"><label>Teléfono</label><input value={phone} onChange={(e) => setPhone(e.target.value)} /></div>
       <button className="btn btn-primary" onClick={create}>Agregar sucursal</button>
     </div>
   );
@@ -568,15 +603,24 @@ function CatalogoPanel() {
 
 function QrCodesPanel() {
   const [codes, setCodes] = useState<QrCode[]>([]);
+  const [branches, setBranches] = useState<Branch[]>([]);
+  const [filterBranch, setFilterBranch] = useState<number | "all">("all");
   const [alias, setAlias] = useState("");
   const [bankOrHolder, setBankOrHolder] = useState("");
+  const [qrBranchId, setQrBranchId] = useState<number | "">("");
   const [dataUri, setDataUri] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const { show } = useToast();
   const fileInput = useRef<HTMLInputElement>(null);
 
   const load = () => api.get<QrCode[]>("/qr-codes?all=1").then(setCodes).catch(() => {});
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    load();
+    api.get<Branch[]>("/branches").then(setBranches).catch(() => {});
+  }, []);
+
+  const nombreSucursal = (id: number | null) => (id ? branches.find((b) => b.id === id)?.name ?? `#${id}` : "Todas las sucursales");
+  const codesFiltrados = filterBranch === "all" ? codes : codes.filter((qr) => qr.branch_id === filterBranch);
 
   const onFile = (file: File) => {
     const reader = new FileReader();
@@ -592,8 +636,8 @@ function QrCodesPanel() {
     setUploading(true);
     try {
       const up = await api.post<{ url: string }>("/upload", { dataUri, folder: "qr" });
-      await api.post("/qr-codes", { alias, bank_or_holder: bankOrHolder || null, image_url: up.url });
-      setAlias(""); setBankOrHolder(""); setDataUri(null);
+      await api.post("/qr-codes", { alias, bank_or_holder: bankOrHolder || null, image_url: up.url, branch_id: qrBranchId || null });
+      setAlias(""); setBankOrHolder(""); setDataUri(null); setQrBranchId("");
       load();
       show("Código QR agregado");
     } catch (e) {
@@ -617,22 +661,32 @@ function QrCodesPanel() {
     <div className="admin-card">
       <h3>Códigos QR de pago</h3>
       <p style={{ color: "var(--color-text-muted)", fontSize: "0.85rem" }}>
-        El cajero elige entre los habilitados al cobrar por QR. El marcado con ⭐ es el que se muestra primero.
+        El cajero solo ve los QR de su propia sucursal (o los marcados "Todas las sucursales"). El marcado con ⭐ es el que se muestra primero.
       </p>
       {codes.length === 0 && (
         <p style={{ color: "var(--color-text-faint)", fontSize: "0.85rem" }}>
           Todavía no hay ningún código QR configurado. Agrega el primero abajo.
         </p>
       )}
+
+      <div className="field-row">
+        <label>Filtrar por sucursal</label>
+        <select value={filterBranch} onChange={(e) => setFilterBranch(e.target.value === "all" ? "all" : Number(e.target.value))}>
+          <option value="all">Todas</option>
+          {branches.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
+        </select>
+      </div>
+
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))", gap: "0.75rem", margin: "0.75rem 0" }}>
-        {codes.map((qr) => (
+        {codesFiltrados.map((qr) => (
           <div key={qr.id} className="admin-card" style={{ marginBottom: 0, opacity: qr.active ? 1 : 0.5, position: "relative" }}>
             {qr.is_default && (
               <span className="badge badge-gold" style={{ position: "absolute", top: 8, right: 8 }}>⭐ Por defecto</span>
             )}
             <img src={qr.image_url} alt={qr.alias} style={{ width: "100%", aspectRatio: "1", objectFit: "cover", borderRadius: 8, marginBottom: "0.4rem" }} />
             <div style={{ fontWeight: 700, fontSize: "0.9rem" }}>{qr.alias}</div>
-            {qr.bank_or_holder && <div style={{ fontSize: "0.78rem", color: "var(--color-text-muted)", marginBottom: "0.4rem" }}>{qr.bank_or_holder}</div>}
+            {qr.bank_or_holder && <div style={{ fontSize: "0.78rem", color: "var(--color-text-muted)" }}>{qr.bank_or_holder}</div>}
+            <div style={{ fontSize: "0.75rem", color: "var(--color-text-faint)", marginBottom: "0.4rem" }}>📍 {nombreSucursal(qr.branch_id)}</div>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: "0.5rem" }}>
               <Switch checked={qr.active} onChange={() => toggleActivo(qr)} label={qr.active ? "Deshabilitar" : "Habilitar"} />
               {!qr.is_default && qr.active && (
@@ -647,6 +701,13 @@ function QrCodesPanel() {
 
       <div className="field-row"><label>Alias (ej. "Yape")</label><input value={alias} onChange={(e) => setAlias(e.target.value)} /></div>
       <div className="field-row"><label>Banco / titular (opcional)</label><input value={bankOrHolder} onChange={(e) => setBankOrHolder(e.target.value)} /></div>
+      <div className="field-row">
+        <label>Sucursal</label>
+        <select value={qrBranchId} onChange={(e) => setQrBranchId(e.target.value ? Number(e.target.value) : "")}>
+          <option value="">Todas las sucursales</option>
+          {branches.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
+        </select>
+      </div>
       <input ref={fileInput} type="file" accept="image/*" style={{ display: "none" }} onChange={(e) => e.target.files?.[0] && onFile(e.target.files[0])} />
       <button className="upload-box" style={{ marginBottom: "0.7rem" }} onClick={() => fileInput.current?.click()}>
         {dataUri ? "Cambiar imagen" : "📷 Subir imagen del QR"}
@@ -704,6 +765,17 @@ function UsuariosPanel() {
 
   const [resetId, setResetId] = useState<number | null>(null);
   const [resetPin, setResetPin] = useState("");
+  const [colorEditId, setColorEditId] = useState<number | null>(null);
+
+  const cambiarColor = async (u: AppUser, color: string) => {
+    try {
+      await api.patch("/users", { id: u.id, color });
+      setColorEditId(null);
+      load();
+    } catch (e) {
+      show(e instanceof ApiError ? e.message : "Error actualizando el color");
+    }
+  };
 
   const guardarPin = async (u: AppUser) => {
     if (resetPin.length < 4 || resetPin.length > 6 || !/^\d+$/.test(resetPin)) {
@@ -727,7 +799,37 @@ function UsuariosPanel() {
         <tbody>
           {users.map((u) => (
             <tr key={u.id}>
-              <td><span className="avatar-dot" style={{ background: `var(--color-${u.color}, var(--color-accent))` }}>{u.name.charAt(0)}</span></td>
+              <td style={{ position: "relative" }}>
+                <button
+                  className="avatar-dot"
+                  style={{ background: `var(--color-${u.color}, var(--color-accent))`, border: "none", cursor: "pointer" }}
+                  title="Cambiar color"
+                  onClick={() => setColorEditId(colorEditId === u.id ? null : u.id)}
+                >
+                  {u.name.charAt(0)}
+                </button>
+                {colorEditId === u.id && (
+                  <div style={{
+                    position: "absolute", top: "110%", left: 0, zIndex: 10,
+                    display: "flex", gap: "0.35rem", padding: "0.5rem",
+                    background: "var(--color-bg-elevated)", border: "1px solid var(--color-border)",
+                    borderRadius: "var(--radius-md)", boxShadow: "var(--shadow-elevated)",
+                  }}>
+                    {COLOR_PRESETS.map((c) => (
+                      <button
+                        key={c}
+                        title={c}
+                        onClick={() => cambiarColor(u, c)}
+                        style={{
+                          width: 22, height: 22, borderRadius: "50%",
+                          background: `var(--color-${c})`,
+                          border: c === u.color ? "2px solid var(--color-text)" : "2px solid transparent",
+                        }}
+                      />
+                    ))}
+                  </div>
+                )}
+              </td>
               <td>{u.name} {u.protected && <span title="Protegido">🔒</span>}</td>
               <td>{u.role}</td>
               <td><Badge tone={u.status ? "success" : "danger"}>{u.status ? "Activo" : "Bloqueado"}</Badge></td>
@@ -779,10 +881,27 @@ function UsuariosPanel() {
 }
 
 function StockPanel() {
+  const [branches, setBranches] = useState<Branch[]>([]);
+  const [branchId, setBranchId] = useState<number | "">("");
   const [items, setItems] = useState<StockItem[]>([]);
+  const [itemName, setItemName] = useState("");
+  const [quantity, setQuantity] = useState("0");
+  const [minStock, setMinStock] = useState("0");
+  const [unit, setUnit] = useState("unidad");
   const { show } = useToast();
-  const load = () => api.get<StockItem[]>("/stock").then(setItems).catch(() => {});
-  useEffect(() => { load(); }, []);
+
+  useEffect(() => {
+    api.get<Branch[]>("/branches").then((bs) => {
+      setBranches(bs);
+      setBranchId((prev) => (prev === "" && bs[0] ? bs[0].id : prev));
+    }).catch(() => {});
+  }, []);
+
+  const load = () => {
+    if (!branchId) return;
+    api.get<StockItem[]>(`/stock?branch_id=${branchId}`).then(setItems).catch(() => {});
+  };
+  useEffect(() => { load(); }, [branchId]);
 
   const updateQty = async (id: number, quantity: number) => {
     try {
@@ -793,9 +912,36 @@ function StockPanel() {
     }
   };
 
+  const createItem = async () => {
+    if (!branchId || !itemName.trim()) {
+      show("Elegí sucursal y nombre del ítem");
+      return;
+    }
+    try {
+      await api.post("/stock", {
+        branch_id: branchId,
+        item_name: itemName,
+        quantity: Number(quantity) || 0,
+        min_stock: Number(minStock) || 0,
+        unit,
+      });
+      setItemName(""); setQuantity("0"); setMinStock("0"); setUnit("unidad");
+      load();
+      show("Ítem agregado");
+    } catch (e) {
+      show(e instanceof ApiError ? e.message : "Error agregando ítem");
+    }
+  };
+
   return (
     <div className="admin-card">
       <h3>Inventario</h3>
+      <div className="field-row">
+        <label>Sucursal</label>
+        <select value={branchId} onChange={(e) => setBranchId(Number(e.target.value))}>
+          {branches.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
+        </select>
+      </div>
       <table className="admin-table">
         <thead><tr><th>Ítem</th><th>Cantidad</th><th>Mínimo</th><th>Unidad</th></tr></thead>
         <tbody>
@@ -827,6 +973,14 @@ function StockPanel() {
           ))}
         </tbody>
       </table>
+      {items.length === 0 && <p style={{ color: "var(--color-text-faint)" }}>Sin ítems en esta sucursal todavía.</p>}
+
+      <h4 style={{ marginTop: "1.25rem", marginBottom: "0.5rem" }}>Nuevo ítem</h4>
+      <div className="field-row"><label>Nombre</label><input value={itemName} onChange={(e) => setItemName(e.target.value)} /></div>
+      <div className="field-row"><label>Cantidad inicial</label><input inputMode="decimal" value={quantity} onChange={(e) => setQuantity(e.target.value)} /></div>
+      <div className="field-row"><label>Mínimo</label><input inputMode="decimal" value={minStock} onChange={(e) => setMinStock(e.target.value)} /></div>
+      <div className="field-row"><label>Unidad</label><input value={unit} onChange={(e) => setUnit(e.target.value)} /></div>
+      <button className="btn btn-primary" onClick={createItem}>Agregar ítem</button>
     </div>
   );
 }

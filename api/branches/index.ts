@@ -30,6 +30,31 @@ async function handler(req: VercelRequest, res: VercelResponse) {
     return;
   }
 
+  if (req.method === "PATCH") {
+    requireAdmin(req);
+    const { id, name, address, phone, is_active } = req.body ?? {};
+    if (!id) {
+      res.status(400).json({ error: "id es obligatorio" });
+      return;
+    }
+    const branch = await queryOne<Branch>(
+      `UPDATE branches SET
+         name = COALESCE($2, name),
+         address = COALESCE($3, address),
+         phone = COALESCE($4, phone),
+         is_active = COALESCE($5, is_active)
+       WHERE id = $1
+       RETURNING id, name, address, phone, is_active`,
+      [id, name ?? null, address ?? null, phone ?? null, is_active ?? null]
+    );
+    if (!branch) {
+      res.status(404).json({ error: "Sucursal no encontrada" });
+      return;
+    }
+    res.status(200).json(branch);
+    return;
+  }
+
   res.status(405).json({ error: "Método no permitido" });
 }
 

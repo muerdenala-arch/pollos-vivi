@@ -22,12 +22,14 @@ async function handler(req: VercelRequest, res: VercelResponse) {
       requireAdmin(req);
       const branchId = Number(req.query.branch_id);
       const date = typeof req.query.date === "string" ? req.query.date : new Date().toISOString().slice(0, 10);
+      // Fecha comparada en horario de Bolivia, no UTC — si no, una caja
+      // abierta después de las 8pm local aparecía fechada al día siguiente.
       const registers = await query<CashRegister & { cashier_name: string }>(
         `SELECT cr.id, cr.cashier_id, cr.branch_id, cr.opening_amount, cr.closing_amount,
                 cr.opened_at, cr.closed_at, cr.status, u.name AS cashier_name
          FROM cash_registers cr
          JOIN users u ON u.id = cr.cashier_id
-         WHERE cr.branch_id = $1 AND cr.opened_at::date = $2::date
+         WHERE cr.branch_id = $1 AND (cr.opened_at AT TIME ZONE 'America/La_Paz')::date = $2::date
          ORDER BY cr.opened_at DESC`,
         [branchId, date]
       );
