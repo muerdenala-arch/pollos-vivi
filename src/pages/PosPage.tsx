@@ -7,8 +7,9 @@ import { useToast } from "../components/Toast";
 import { ThemeToggle } from "../components/ThemeToggle";
 import { CartSheet } from "../components/CartSheet";
 import { PendingOrdersSheet } from "../components/PendingOrdersSheet";
+import { CashRegisterSheet } from "../components/CashRegisterSheet";
 import { Logo } from "../components/Logo";
-import { ClipboardList, ChefHat, Settings, LogOut } from "lucide-react";
+import { ClipboardList, ChefHat, Settings, LogOut, Wallet } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 const bs = (n: number) => `Bs. ${n.toFixed(2)}`;
@@ -18,6 +19,7 @@ export default function PosPage() {
   const [search, setSearch] = useState("");
   const [cartOpen, setCartOpen] = useState(false);
   const [pendingOpen, setPendingOpen] = useState(false);
+  const [cashOpen, setCashOpen] = useState(false);
   const { addVariante, itemCount, total } = useCart();
   const { user, branch, logout } = useAuth();
   const { categorias, variantes: allVariantes, loading } = useCatalog();
@@ -50,6 +52,7 @@ export default function PosPage() {
           </span>
           <ThemeToggle />
           <button className="icon-btn" onClick={() => setPendingOpen(true)} title="Pedidos pendientes"><ClipboardList size={18} /></button>
+          <button className="icon-btn" onClick={() => setCashOpen(true)} title="Cerrar caja"><Wallet size={18} /></button>
           <button className="icon-btn" onClick={() => navigate("/cocina")} title="Pantalla de cocina"><ChefHat size={18} /></button>
           {user?.role === "admin" && (
             <button className="icon-btn" onClick={() => navigate("/admin")} title="Panel admin"><Settings size={18} /></button>
@@ -109,6 +112,7 @@ export default function PosPage() {
       </div>
 
       <PendingOrdersSheet open={pendingOpen} onClose={() => setPendingOpen(false)} />
+      <CashRegisterSheet open={cashOpen} onClose={() => setCashOpen(false)} />
 
       {itemCount > 0 && (
         <button className="cart-fab-bar" onClick={() => setCartOpen(true)}>
