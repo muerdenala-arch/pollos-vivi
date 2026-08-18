@@ -13,9 +13,9 @@ export function Logo({ size = 32 }: { size?: number }) {
       }}
     >
       <img
-        src="/logo.jpg"
+        src="/logo.png"
         alt="Pollos Vivi"
-        style={{ width: "100%", height: "100%", objectFit: "cover", transform: "scale(1.35)" }}
+        style={{ width: "100%", height: "100%", objectFit: "cover", transform: "scale(1.15)" }}
       />
     </span>
   );

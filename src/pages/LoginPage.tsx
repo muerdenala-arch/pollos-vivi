@@ -80,7 +80,13 @@ export default function LoginPage() {
             animate={{ opacity: 1, scale: 1 }}
             transition={{ type: "spring", stiffness: 300, damping: 18, delay: 0.1 }}
           >
-            <Logo size={92} />
+            {/* Flotado + balanceo suave y continuo — le da vida al mascot sin ser molesto */}
+            <motion.div
+              animate={{ y: [0, -8, 0], rotate: [-2.5, 2.5, -2.5] }}
+              transition={{ duration: 4.5, repeat: Infinity, ease: "easeInOut", delay: 0.6 }}
+            >
+              <Logo size={92} />
+            </motion.div>
           </motion.div>
         </div>
 
