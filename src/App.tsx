@@ -16,6 +16,18 @@ function RequireAuth({ children }: { children: ReactNode }) {
   return <>{children}</>;
 }
 
+/**
+ * POS y Cocina son accesos operativos: el admin se enfoca solo en gestión
+ * (panel /admin). Se bloquea también por URL directa, no solo ocultando
+ * botones — si un admin entra a "/" o "/cocina" se lo manda a su panel.
+ */
+function RequireOperational({ children }: { children: ReactNode }) {
+  const { user } = useAuth();
+  if (!user) return <Navigate to="/login" replace />;
+  if (user.role === "admin") return <Navigate to="/admin" replace />;
+  return <>{children}</>;
+}
+
 function RequireAdmin({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   if (!user) return <Navigate to="/login" replace />;
@@ -30,11 +42,11 @@ function AppRoutes() {
       <Route
         path="/"
         element={
-          <RequireAuth>
+          <RequireOperational>
             <CashRegisterGate>
               <PosPage />
             </CashRegisterGate>
-          </RequireAuth>
+          </RequireOperational>
         }
       />
       <Route
@@ -48,9 +60,9 @@ function AppRoutes() {
       <Route
         path="/cocina"
         element={
-          <RequireAuth>
+          <RequireOperational>
             <KitchenPage />
-          </RequireAuth>
+          </RequireOperational>
         }
       />
       <Route path="*" element={<Navigate to="/" replace />} />

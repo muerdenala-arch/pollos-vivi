@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { useCart } from "../context/CartContext";
+import { useAuth } from "../context/AuthContext";
 import { api, ApiError } from "../lib/api";
 import { useToast } from "./Toast";
+import { printTicket } from "../lib/printTicket";
 import type { Order, PaymentMethod, QrCode } from "@shared/types";
 
 const bs = (n: number) => `Bs. ${n.toFixed(2)}`;
@@ -15,6 +17,7 @@ interface PaymentSheetProps {
 
 export function PaymentSheet({ onClose, onDone, existingOrder }: PaymentSheetProps) {
   const { lines, orderType, total: cartTotal, clear } = useCart();
+  const { branch, user } = useAuth();
   const total = existingOrder ? Number(existingOrder.total) : cartTotal;
   const { show } = useToast();
   const [method, setMethod] = useState<PaymentMethod>("Efectivo");
@@ -60,13 +63,14 @@ export function PaymentSheet({ onClose, onDone, existingOrder }: PaymentSheetPro
         receiptUrl = up.url;
       }
 
-      await api.patch<Order>(`/orders/${order.id}`, {
+      const cobrado = await api.patch<Order>(`/orders/${order.id}`, {
         status: "Pagado",
         payment_method: method,
         receipt_url: receiptUrl,
       });
 
       show(`✅ Pedido ${order.ticket_number} cobrado`);
+      printTicket(cobrado, branch, user?.name ?? "—");
       if (!existingOrder) clear();
       onDone();
     } catch (e) {

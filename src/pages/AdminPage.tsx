@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { api, ApiError } from "../lib/api";
 import { useAuth } from "../context/AuthContext";
 import { ThemeToggle } from "../components/ThemeToggle";
@@ -13,7 +12,7 @@ import type { Branch, AppUser, StockItem, Order, QrCode } from "@shared/types";
 import type { Categoria, Presa, Producto } from "@shared/catalog";
 import {
   BarChart3, Receipt, Wallet, Utensils, QrCode as QrCodeIcon,
-  Store, Users, Package, ChefHat, LogOut, Menu, X, type LucideIcon,
+  Store, Users, Package, LogOut, Menu, X, type LucideIcon,
 } from "lucide-react";
 
 type Tab = "reportes" | "pedidos" | "caja" | "catalogo" | "qr" | "sucursales" | "usuarios" | "stock";
@@ -33,7 +32,6 @@ export default function AdminPage() {
   const [tab, setTab] = useState<Tab>("reportes");
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const { logout } = useAuth();
-  const navigate = useNavigate();
 
   const selectTab = (id: Tab) => {
     setTab(id);
@@ -77,8 +75,6 @@ export default function AdminPage() {
 
         <div className="admin-sidebar-footer">
           <ThemeToggle />
-          <button className="admin-nav-item" onClick={() => navigate("/cocina")}><ChefHat size={18} /> Cocina</button>
-          <button className="admin-nav-item" onClick={() => navigate("/")}><Logo size={18} /> Volver al POS</button>
           <button className="admin-nav-item" onClick={logout}><LogOut size={18} /> Cerrar sesión</button>
         </div>
       </aside>

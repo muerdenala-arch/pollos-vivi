@@ -6,7 +6,7 @@ import { useToast } from "../components/Toast";
 import { ThemeToggle } from "../components/ThemeToggle";
 import { Logo } from "../components/Logo";
 import { StatusBadge } from "../components/Badge";
-import { Settings, LogOut } from "lucide-react";
+import { LogOut } from "lucide-react";
 import type { Order, OrderStatus } from "@shared/types";
 
 const REFRESH_MS = 6000;
@@ -27,7 +27,7 @@ const NEXT_LABEL: Partial<Record<OrderStatus, string>> = {
 export default function KitchenPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
-  const { user, logout } = useAuth();
+  const { logout } = useAuth();
   const { show } = useToast();
   const navigate = useNavigate();
 
@@ -59,6 +59,16 @@ export default function KitchenPage() {
     }
   };
 
+  const cancelar = async (order: Order) => {
+    try {
+      await api.patch(`/orders/${order.id}`, { status: "Cancelado" });
+      show(`Pedido ${order.ticket_number} cancelado`);
+      load();
+    } catch (e) {
+      show(e instanceof ApiError ? e.message : "No se pudo cancelar el pedido");
+    }
+  };
+
   const sorted = [...orders].sort((a, b) => a.created_at.localeCompare(b.created_at));
 
   return (
@@ -69,13 +79,9 @@ export default function KitchenPage() {
           Cocina
         </div>
         <div className="topbar-actions">
-          <span style={{ fontSize: "0.85rem", color: "var(--color-text-muted)" }}>{sorted.length} en curso</span>
+          <span className="topbar-user-label" style={{ fontSize: "0.85rem", color: "var(--color-text-muted)" }}>{sorted.length} en curso</span>
           <ThemeToggle />
-          {user?.role === "admin" ? (
-            <button className="icon-btn" onClick={() => navigate("/admin")} title="Panel admin"><Settings size={18} /></button>
-          ) : (
-            <button className="icon-btn" onClick={() => navigate("/")} title="Ir al POS"><Logo size={22} /></button>
-          )}
+          <button className="icon-btn" onClick={() => navigate("/")} title="Ir al POS"><Logo size={22} /></button>
           <button className="icon-btn" onClick={logout} title="Cerrar sesión"><LogOut size={18} /></button>
         </div>
       </header>
@@ -91,7 +97,7 @@ export default function KitchenPage() {
         ) : (
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: "0.85rem" }}>
             {sorted.map((o) => (
-              <OrderCard key={o.id} order={o} onAdvance={() => avanzar(o)} />
+              <OrderCard key={o.id} order={o} onAdvance={() => avanzar(o)} onCancel={() => cancelar(o)} />
             ))}
           </div>
         )}
@@ -100,7 +106,8 @@ export default function KitchenPage() {
   );
 }
 
-function OrderCard({ order, onAdvance }: { order: Order; onAdvance: () => void }) {
+function OrderCard({ order, onAdvance, onCancel }: { order: Order; onAdvance: () => void; onCancel: () => void }) {
+  const [confirmando, setConfirmando] = useState(false);
   const minutos = Math.max(0, Math.round((Date.now() - new Date(order.created_at).getTime()) / 60000));
   const urgente = minutos >= 15;
   const nextLabel = NEXT_LABEL[order.status];
@@ -142,6 +149,20 @@ function OrderCard({ order, onAdvance }: { order: Order; onAdvance: () => void }
       {nextLabel && (
         <button className="btn btn-primary" onClick={onAdvance}>
           {nextLabel}
+        </button>
+      )}
+      {confirmando ? (
+        <div style={{ display: "flex", gap: "0.5rem", marginTop: "0.5rem" }}>
+          <button className="btn btn-danger" style={{ flex: 1 }} onClick={onCancel}>
+            Sí, cancelar pedido
+          </button>
+          <button className="btn" style={{ flex: 1 }} onClick={() => setConfirmando(false)}>
+            No
+          </button>
+        </div>
+      ) : (
+        <button className="btn btn-danger" style={{ marginTop: "0.5rem" }} onClick={() => setConfirmando(true)}>
+          ✕ Cancelar pedido
         </button>
       )}
     </div>
