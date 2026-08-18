@@ -598,11 +598,28 @@ function UsuariosPanel() {
     }
   };
 
+  const [resetId, setResetId] = useState<number | null>(null);
+  const [resetPin, setResetPin] = useState("");
+
+  const guardarPin = async (u: AppUser) => {
+    if (resetPin.length < 4 || resetPin.length > 6 || !/^\d+$/.test(resetPin)) {
+      show("El PIN debe tener entre 4 y 6 dígitos");
+      return;
+    }
+    try {
+      await api.patch("/users", { id: u.id, pin: resetPin });
+      setResetId(null); setResetPin("");
+      show("PIN actualizado");
+    } catch (e) {
+      show(e instanceof ApiError ? e.message : "Error actualizando el PIN");
+    }
+  };
+
   return (
     <div className="admin-card">
       <h3>Personal</h3>
       <table className="admin-table">
-        <thead><tr><th></th><th>Nombre</th><th>Rol</th><th>Estado</th><th></th></tr></thead>
+        <thead><tr><th></th><th>Nombre</th><th>Rol</th><th>Estado</th><th></th><th></th></tr></thead>
         <tbody>
           {users.map((u) => (
             <tr key={u.id}>
@@ -612,6 +629,18 @@ function UsuariosPanel() {
               <td><Badge tone={u.status ? "success" : "danger"}>{u.status ? "Activo" : "Bloqueado"}</Badge></td>
               <td>
                 <Switch checked={u.status} onChange={() => toggleBloqueo(u)} label={u.status ? "Bloquear" : "Desbloquear"} disabled={u.protected} />
+              </td>
+              <td>
+                {resetId === u.id ? (
+                  <span style={{ display: "flex", gap: "0.4rem", alignItems: "center" }}>
+                    <input inputMode="numeric" autoFocus placeholder="Nuevo PIN" value={resetPin}
+                      onChange={(e) => setResetPin(e.target.value)} style={{ width: "5.5rem" }} />
+                    <button className="btn btn-primary" onClick={() => guardarPin(u)}>Guardar</button>
+                    <button className="btn" onClick={() => { setResetId(null); setResetPin(""); }}>Cancelar</button>
+                  </span>
+                ) : (
+                  <button className="btn" onClick={() => { setResetId(u.id); setResetPin(""); }}>Cambiar PIN</button>
+                )}
               </td>
             </tr>
           ))}

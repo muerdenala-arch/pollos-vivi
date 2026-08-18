@@ -44,7 +44,7 @@ async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   if (req.method === "PATCH") {
-    const { id, status, color } = req.body ?? {};
+    const { id, status, color, pin } = req.body ?? {};
     if (!id) {
       res.status(400).json({ error: "id es obligatorio" });
       return;
@@ -58,10 +58,18 @@ async function handler(req: VercelRequest, res: VercelResponse) {
       res.status(400).json({ error: "Este usuario está protegido y no se puede bloquear" });
       return;
     }
+    let pinHash: string | null = null;
+    if (pin !== undefined) {
+      if (typeof pin !== "string" || pin.length < 4 || pin.length > 6 || !/^\d+$/.test(pin)) {
+        res.status(400).json({ error: "El PIN debe tener entre 4 y 6 dígitos" });
+        return;
+      }
+      pinHash = await bcrypt.hash(pin, 10);
+    }
     const user = await queryOne<AppUser>(
-      `UPDATE users SET status = COALESCE($2, status), color = COALESCE($3, color) WHERE id = $1
-       RETURNING ${SELECT_USER}`,
-      [id, status ?? null, color ?? null]
+      `UPDATE users SET status = COALESCE($2, status), color = COALESCE($3, color), pin_hash = COALESCE($4, pin_hash)
+       WHERE id = $1 RETURNING ${SELECT_USER}`,
+      [id, status ?? null, color ?? null, pinHash]
     );
     res.status(200).json(user);
     return;
