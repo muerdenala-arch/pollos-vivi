@@ -705,7 +705,7 @@ function QrCodesPanel() {
         <label>Sucursal</label>
         <select value={qrBranchId} onChange={(e) => setQrBranchId(e.target.value ? Number(e.target.value) : "")}>
           <option value="">Todas las sucursales</option>
-          {branches.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
+          {branches.filter((b) => b.is_active).map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
         </select>
       </div>
       <input ref={fileInput} type="file" accept="image/*" style={{ display: "none" }} onChange={(e) => e.target.files?.[0] && onFile(e.target.files[0])} />
@@ -872,7 +872,7 @@ function UsuariosPanel() {
         <label>Sucursal</label>
         <select value={branchId} onChange={(e) => setBranchId(e.target.value ? Number(e.target.value) : "")}>
           <option value="">— Sin asignar —</option>
-          {branches.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
+          {branches.filter((b) => b.is_active).map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
         </select>
       </div>
       <button className="btn btn-primary" onClick={create}>Crear usuario</button>
@@ -893,7 +893,8 @@ function StockPanel() {
   useEffect(() => {
     api.get<Branch[]>("/branches").then((bs) => {
       setBranches(bs);
-      setBranchId((prev) => (prev === "" && bs[0] ? bs[0].id : prev));
+      const primera = bs.find((b) => b.is_active) ?? bs[0];
+      setBranchId((prev) => (prev === "" && primera ? primera.id : prev));
     }).catch(() => {});
   }, []);
 
@@ -939,7 +940,7 @@ function StockPanel() {
       <div className="field-row">
         <label>Sucursal</label>
         <select value={branchId} onChange={(e) => setBranchId(Number(e.target.value))}>
-          {branches.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
+          {branches.filter((b) => b.is_active).map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
         </select>
       </div>
       <table className="admin-table">
