@@ -165,7 +165,7 @@ function OrderCard({ order, onAdvance, onCancel }: { order: Order; onAdvance: ()
           <button className="btn btn-danger" style={{ flex: 1 }} onClick={onCancel}>
             Sí, cancelar pedido
           </button>
-          <button className="btn" style={{ flex: 1 }} onClick={() => setConfirmando(false)}>
+          <button className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setConfirmando(false)}>
             No
           </button>
         </div>

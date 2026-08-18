@@ -5,6 +5,7 @@ import { Delete, Loader2 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { ApiError } from "../lib/api";
 import { Logo } from "../components/Logo";
+import { ThemeToggle } from "../components/ThemeToggle";
 
 const MAX_PIN = 6;
 const DIGITS = ["1", "2", "3", "4", "5", "6", "7", "8", "9"];
@@ -46,6 +47,10 @@ export default function LoginPage() {
 
   return (
     <div className="login-atmosphere">
+      <div className="login-theme-toggle">
+        <ThemeToggle />
+      </div>
+
       {/* Blobs de luz ambiental — respiran en bucle infinito */}
       <motion.div
         className="login-glow login-glow-a"

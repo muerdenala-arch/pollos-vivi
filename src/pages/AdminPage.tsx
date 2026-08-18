@@ -13,7 +13,7 @@ import type { Branch, AppUser, StockItem, Order, QrCode } from "@shared/types";
 import type { Categoria, Presa, Producto } from "@shared/catalog";
 import {
   BarChart3, Receipt, Wallet, Utensils, QrCode as QrCodeIcon,
-  Store, Users, Package, LogOut, Menu, X, type LucideIcon,
+  Store, Users, Package, LogOut, Menu, X, Lock, type LucideIcon,
 } from "lucide-react";
 
 type Tab = "reportes" | "pedidos" | "caja" | "catalogo" | "qr" | "sucursales" | "usuarios" | "stock";
@@ -57,6 +57,7 @@ export default function AdminPage() {
               <div className="admin-sidebar-title">Pollos Vivi</div>
               <div className="admin-sidebar-subtitle">Panel Admin</div>
             </div>
+            <ThemeToggle />
             <button className="icon-btn admin-sidebar-close" onClick={() => setMobileNavOpen(false)} aria-label="Cerrar menú"><X size={18} /></button>
           </div>
 
@@ -82,7 +83,6 @@ export default function AdminPage() {
         </div>
 
         <div className="admin-sidebar-footer">
-          <ThemeToggle />
           <button className="admin-nav-item" onClick={logout}><LogOut size={18} /> Cerrar sesión</button>
         </div>
       </aside>
@@ -672,11 +672,18 @@ function UsuariosPanel() {
                   <span style={{ display: "flex", gap: "0.4rem", alignItems: "center" }}>
                     <input inputMode="numeric" autoFocus placeholder="Nuevo PIN" value={resetPin}
                       onChange={(e) => setResetPin(e.target.value)} style={{ width: "5.5rem" }} />
-                    <button className="btn btn-primary" onClick={() => guardarPin(u)}>Guardar</button>
-                    <button className="btn" onClick={() => { setResetId(null); setResetPin(""); }}>Cancelar</button>
+                    <button className="btn btn-primary" style={{ width: "auto", padding: "0.5rem 0.9rem" }} onClick={() => guardarPin(u)}>Guardar</button>
+                    <button className="btn btn-secondary" style={{ width: "auto", padding: "0.5rem 0.9rem" }} onClick={() => { setResetId(null); setResetPin(""); }}>Cancelar</button>
                   </span>
                 ) : (
-                  <button className="btn" onClick={() => { setResetId(u.id); setResetPin(""); }}>Cambiar PIN</button>
+                  <motion.button
+                    className="btn btn-secondary btn-pin-reset"
+                    style={{ width: "auto" }}
+                    whileTap={{ scale: 0.96 }}
+                    onClick={() => { setResetId(u.id); setResetPin(""); }}
+                  >
+                    <Lock size={14} /> Cambiar PIN
+                  </motion.button>
                 )}
               </td>
             </tr>

@@ -102,6 +102,29 @@
 .icon-btn:active { transform: scale(0.94); }
 .icon-btn:hover { box-shadow: var(--glow-accent); }
 
+/* ── Selector de tema (píldora Sol/Luna) ─────────────────────────────────── */
+.theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px;
+  border-radius: 999px;
+  background: var(--color-bg-sunken);
+  box-shadow: 0 0 0 1px var(--color-border);
+  flex-shrink: 0;
+}
+.theme-toggle-opt {
+  position: relative;
+  isolation: isolate;
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  color: var(--color-text-faint);
+  transition: color 0.15s;
+}
+.theme-toggle-opt.active { color: #1a0e04; }
+
 /* Botón "Cerrar caja" — es una acción crítica, no un ícono más: se distingue
    con tinte dorado propio para que el cajero lo ubique de un vistazo. */
 .icon-btn-critical {
@@ -143,8 +166,15 @@
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  background: #07090e;
+  background: var(--color-bg);
   padding: 1.5rem;
+}
+
+.login-theme-toggle {
+  position: absolute;
+  top: 1.25rem;
+  right: 1.25rem;
+  z-index: 2;
 }
 
 .login-glow {
@@ -178,11 +208,11 @@
   padding: 2rem;
   border-radius: 1.75rem;
   text-align: center;
-  background: rgba(15, 23, 42, 0.6);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
   backdrop-filter: blur(28px);
   -webkit-backdrop-filter: blur(28px);
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.55), 0 0 70px -15px rgba(249, 115, 22, 0.18);
+  box-shadow: var(--shadow-elevated);
 }
 
 .login-logo-wrap {
@@ -200,8 +230,8 @@
   z-index: 0;
 }
 
-.login-card .pin-title { color: #f8fafc; }
-.login-card .pin-subtitle { color: rgba(203, 213, 225, 0.75); margin-top: -0.6rem; margin-bottom: 1.4rem; }
+.login-card .pin-title { color: var(--color-text); }
+.login-card .pin-subtitle { color: var(--color-text-muted); margin-top: -0.6rem; margin-bottom: 1.4rem; }
 
 .pin-dots-wrap {
   display: inline-block;
@@ -225,13 +255,13 @@
   width: 16px;
   height: 16px;
   border-radius: 50%;
-  border: 2px solid rgba(255, 255, 255, 0.18);
+  border: 2px solid color-mix(in srgb, var(--color-text) 20%, transparent);
   grid-area: 1 / 1;
 }
 .pin-dot.filled {
   border: none;
-  background: linear-gradient(135deg, #f59e0b, #f97316);
-  box-shadow: 0 0 12px -1px rgba(249, 115, 22, 0.7);
+  background: var(--gradient-crispy);
+  box-shadow: var(--glow-accent);
 }
 
 .pin-status {
@@ -243,10 +273,10 @@
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
-  color: #fbbf24;
+  color: var(--color-gold);
 }
 .pin-error-flash {
-  color: #fca5a5;
+  color: var(--color-danger);
   font-weight: 600;
 }
 .spin {
@@ -266,18 +296,19 @@
   width: 100%;
   aspect-ratio: 1;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  color: #f1f5f9;
+  background: color-mix(in srgb, var(--color-text) 5%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-text) 6%, transparent);
+  color: var(--color-text);
   font-size: 1.4rem;
   font-weight: 600;
   display: grid;
   place-items: center;
+  transition: border-color 0.15s;
 }
-.pin-key:hover:not(:disabled) { border-color: rgba(249, 115, 22, 0.4); }
+.pin-key:hover:not(:disabled) { border-color: color-mix(in srgb, var(--color-accent) 40%, transparent); }
 .pin-key:disabled { opacity: 0.45; }
 .pin-key.pin-key-ghost { background: transparent; border: none; pointer-events: none; }
-.pin-key-backspace { color: #cbd5e1; }
+.pin-key-backspace { color: var(--color-text-muted); }
 
 /* ── POS: catálogo ──────────────────────────────────────────────────────── */
 
@@ -618,6 +649,18 @@
   border-radius: var(--radius-lg);
 }
 
+/* Acciones inline en tablas (ej. "Cambiar PIN") — botón real, no texto suelto. */
+.btn-pin-reset {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.45rem 0.85rem;
+  font-size: 0.85rem;
+  color: var(--color-gold);
+  background: color-mix(in srgb, var(--color-gold) 12%, var(--color-bg-sunken));
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-gold) 22%, transparent);
+}
+
 /* ── Pago (QR / efectivo) ──────────────────────────────────────────────── */
 
 .payment-methods {
@@ -721,10 +764,12 @@
 .admin-sidebar-header {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 0.65rem;
   padding: 0.5rem 0.4rem 1.25rem;
   position: relative;
 }
+.admin-sidebar-header .theme-toggle { margin-left: auto; }
 .admin-sidebar-title { font-family: var(--font-display); font-weight: 800; font-size: 1.05rem; line-height: 1.2; }
 .admin-sidebar-subtitle { font-size: 0.78rem; color: var(--color-text-muted); }
 .admin-sidebar-close { display: none; }
