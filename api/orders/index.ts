@@ -13,6 +13,7 @@ async function handler(req: VercelRequest, res: VercelResponse) {
     const limit = Math.min(Number(req.query.limit) || 50, 200);
     const status = typeof req.query.status === "string" ? req.query.status : null;
     const branchId = req.query.branch_id ? Number(req.query.branch_id) : user.branchId;
+    const cashRegisterId = req.query.cash_register_id ? Number(req.query.cash_register_id) : null;
 
     const rows = await query<Order>(
       `SELECT id, ticket_number, branch_id, cashier_id, cash_register_id, order_type,
@@ -20,9 +21,10 @@ async function handler(req: VercelRequest, res: VercelResponse) {
        FROM orders
        WHERE ($1::int IS NULL OR branch_id = $1)
          AND ($2::text IS NULL OR status = $2::order_status)
+         AND ($4::int IS NULL OR cash_register_id = $4)
        ORDER BY created_at DESC
        LIMIT $3`,
-      [branchId ?? null, status, limit]
+      [branchId ?? null, status, limit, cashRegisterId]
     );
     res.status(200).json(rows);
     return;

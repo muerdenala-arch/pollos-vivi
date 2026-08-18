@@ -7,9 +7,8 @@ import { Logo } from "../components/Logo";
 import { StatusBadge, Badge } from "../components/Badge";
 import { Switch } from "../components/Switch";
 import { useToast } from "../components/Toast";
-import { useCashRegister } from "../hooks/useCashRegister";
 import { useCatalog } from "../hooks/useCatalog";
-import type { Branch, AppUser, StockItem, Order, QrCode } from "@shared/types";
+import type { Branch, AppUser, StockItem, Order, QrCode, CashRegister } from "@shared/types";
 import type { Categoria, Presa, Producto } from "@shared/catalog";
 import {
   BarChart3, Receipt, Wallet, Utensils, QrCode as QrCodeIcon,
@@ -21,7 +20,7 @@ type Tab = "reportes" | "pedidos" | "caja" | "catalogo" | "qr" | "sucursales" | 
 const TABS: { id: Tab; label: string; icon: LucideIcon }[] = [
   { id: "reportes", label: "Reportes", icon: BarChart3 },
   { id: "pedidos", label: "Pedidos", icon: Receipt },
-  { id: "caja", label: "Caja", icon: Wallet },
+  { id: "caja", label: "Cajas", icon: Wallet },
   { id: "catalogo", label: "Catálogo", icon: Utensils },
   { id: "qr", label: "Códigos QR", icon: QrCodeIcon },
   { id: "sucursales", label: "Sucursales", icon: Store },
@@ -197,13 +196,22 @@ function StatCard({ label, value }: { label: string; value: string }) {
 
 function PedidosPanel() {
   const [orders, setOrders] = useState<Order[]>([]);
-  const [zoomUrl, setZoomUrl] = useState<string | null>(null);
   useEffect(() => {
     api.get<Order[]>("/orders?limit=50").then(setOrders).catch(() => {});
   }, []);
   return (
     <div className="admin-card">
       <h3>Últimos pedidos</h3>
+      <OrdersTable orders={orders} emptyMessage="Sin pedidos todavía." />
+    </div>
+  );
+}
+
+/** Tabla de pedidos con comprobante (miniatura + zoom) — reusada por Pedidos y por Cajas. */
+function OrdersTable({ orders, emptyMessage }: { orders: Order[]; emptyMessage: string }) {
+  const [zoomUrl, setZoomUrl] = useState<string | null>(null);
+  return (
+    <>
       <table className="admin-table">
         <thead>
           <tr><th>Ticket</th><th>Tipo</th><th>Total</th><th>Pago</th><th>Comprobante</th><th>Estado</th></tr>
@@ -227,7 +235,7 @@ function PedidosPanel() {
           ))}
         </tbody>
       </table>
-      {orders.length === 0 && <p style={{ color: "var(--color-text-faint)" }}>Sin pedidos todavía.</p>}
+      {orders.length === 0 && <p style={{ color: "var(--color-text-faint)" }}>{emptyMessage}</p>}
 
       {zoomUrl && (
         <div
@@ -242,52 +250,111 @@ function PedidosPanel() {
           <img src={zoomUrl} alt="Comprobante" style={{ maxWidth: "min(90vw, 420px)", maxHeight: "80vh", borderRadius: "var(--radius-md)" }} />
         </div>
       )}
+    </>
+  );
+}
+
+/**
+ * Auditoría de cajas por sucursal — reemplaza al viejo CajaPanel (mostraba
+ * "mi caja abierta", pero el admin ya no puede abrir caja, así que siempre
+ * salía vacío). Acá el admin elige sucursal + fecha, ve cuántas cajas se
+ * abrieron ese día y por quién, y puede entrar a cada una a ver todos sus
+ * movimientos (pedidos) y comprobantes de pago QR.
+ */
+function CajaPanel() {
+  const [branches, setBranches] = useState<Branch[]>([]);
+  const [branchId, setBranchId] = useState<number | "">("");
+  const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [registers, setRegisters] = useState<CashRegister[] | null>(null);
+  const [expandedId, setExpandedId] = useState<number | null>(null);
+
+  useEffect(() => {
+    api.get<Branch[]>("/branches").then((bs) => {
+      setBranches(bs);
+      setBranchId((prev) => (prev === "" && bs[0] ? bs[0].id : prev));
+    }).catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    if (!branchId) return;
+    setRegisters(null);
+    api.get<CashRegister[]>(`/cash-registers?branch_id=${branchId}&date=${date}`)
+      .then(setRegisters)
+      .catch(() => setRegisters([]));
+  }, [branchId, date]);
+
+  return (
+    <div className="admin-card">
+      <h3>Cajas por sucursal</h3>
+      <div className="field-row">
+        <label>Sucursal</label>
+        <select value={branchId} onChange={(e) => { setBranchId(Number(e.target.value)); setExpandedId(null); }}>
+          {branches.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
+        </select>
+      </div>
+      <div className="field-row">
+        <label>Fecha</label>
+        <input type="date" value={date} onChange={(e) => { setDate(e.target.value); setExpandedId(null); }} />
+      </div>
+
+      {registers === null ? (
+        <p style={{ color: "var(--color-text-faint)" }}>Cargando…</p>
+      ) : registers.length === 0 ? (
+        <p style={{ color: "var(--color-text-faint)" }}>No se abrió ninguna caja esta fecha en esta sucursal.</p>
+      ) : (
+        <>
+          <p style={{ fontSize: "0.85rem", color: "var(--color-text-muted)", marginTop: 0 }}>
+            {registers.length} {registers.length === 1 ? "caja abierta" : "cajas abiertas"} ese día.
+          </p>
+          <table className="admin-table">
+            <thead><tr><th>Cajero</th><th>Apertura</th><th>Cierre</th><th>Estado</th><th></th></tr></thead>
+            <tbody>
+              {registers.map((r) => (
+                <RegisterRow key={r.id} register={r} expanded={expandedId === r.id}
+                  onToggle={() => setExpandedId(expandedId === r.id ? null : r.id)} />
+              ))}
+            </tbody>
+          </table>
+        </>
+      )}
     </div>
   );
 }
 
-function CajaPanel() {
-  const { register, close } = useCashRegister();
-  const { show } = useToast();
-  const [amount, setAmount] = useState("");
-  const [resumen, setResumen] = useState<Record<string, number> | null>(null);
+function RegisterRow({ register, expanded, onToggle }: { register: CashRegister; expanded: boolean; onToggle: () => void }) {
+  const [orders, setOrders] = useState<Order[] | null>(null);
 
-  const doClose = async () => {
-    if (!register) return;
-    const value = Number(amount.replace(",", "."));
-    if (!Number.isFinite(value) || value < 0) return;
-    try {
-      const res = await close(register.id, value);
-      setResumen(res.resumen);
-      show("Caja cerrada correctamente");
-    } catch (e) {
-      show(e instanceof ApiError ? e.message : "No se pudo cerrar la caja");
+  useEffect(() => {
+    if (expanded && orders === null) {
+      api.get<Order[]>(`/orders?cash_register_id=${register.id}&limit=200`).then(setOrders).catch(() => setOrders([]));
     }
-  };
-
-  if (register === undefined) return <p>Cargando…</p>;
-  if (!register) return <div className="admin-card">No hay una caja abierta en este momento.</div>;
+  }, [expanded, orders, register.id]);
 
   return (
-    <div className="admin-card">
-      <h3>Caja abierta</h3>
-      <p>Apertura: {bs(register.opening_amount)} · desde {new Date(register.opened_at).toLocaleString("es-BO")}</p>
-      <div className="field-row">
-        <label>Monto contado al cierre (Bs.)</label>
-        <input inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} />
-      </div>
-      <button className="btn btn-primary" onClick={doClose}>Cerrar caja / arqueo</button>
-
-      {resumen && (
-        <div style={{ marginTop: "1rem", fontSize: "0.9rem" }}>
-          <p>Efectivo esperado: {bs(resumen.efectivo_esperado)}</p>
-          <p>Vendido efectivo: {bs(resumen.efectivo_vendido)}</p>
-          <p>Vendido QR: {bs(resumen.qr_vendido)}</p>
-          <p>Pedidos: {resumen.pedidos}</p>
-          <p>Diferencia: {bs(resumen.diferencia)}</p>
-        </div>
+    <>
+      <tr>
+        <td>{register.cashier_name ?? `#${register.cashier_id}`}</td>
+        <td>{bs(register.opening_amount)} · {new Date(register.opened_at).toLocaleTimeString("es-BO", { hour: "2-digit", minute: "2-digit" })}</td>
+        <td>{register.closing_amount != null ? bs(register.closing_amount) : "—"}</td>
+        <td><Badge tone={register.status === "open" ? "success" : "muted"}>{register.status === "open" ? "Abierta" : "Cerrada"}</Badge></td>
+        <td>
+          <button className="btn btn-secondary" style={{ width: "auto", padding: "0.4rem 0.8rem" }} onClick={onToggle}>
+            {expanded ? "Ocultar" : "Ver movimientos"}
+          </button>
+        </td>
+      </tr>
+      {expanded && (
+        <tr>
+          <td colSpan={5} style={{ padding: "0.75rem 0" }}>
+            {orders === null ? (
+              <p style={{ color: "var(--color-text-faint)" }}>Cargando movimientos…</p>
+            ) : (
+              <OrdersTable orders={orders} emptyMessage="Sin movimientos en esta caja." />
+            )}
+          </td>
+        </tr>
       )}
-    </div>
+    </>
   );
 }
 

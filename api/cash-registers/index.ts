@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { withErrorHandling } from "../_lib/http";
-import { queryOne } from "../_lib/db";
-import { getAuthUser } from "../_lib/auth";
+import { query, queryOne } from "../_lib/db";
+import { getAuthUser, requireAdmin } from "../_lib/auth";
 import type { CashRegister } from "../../shared/types";
 
 /**
@@ -15,6 +15,26 @@ async function handler(req: VercelRequest, res: VercelResponse) {
   const user = getAuthUser(req);
 
   if (req.method === "GET") {
+    // Modo admin: listado de cajas de UNA sucursal en UNA fecha (para auditar
+    // turnos — cuántas cajas se abrieron, quién, y poder ver sus movimientos).
+    // Se distingue del modo normal (mi propia caja abierta) por query params.
+    if (req.query.branch_id) {
+      requireAdmin(req);
+      const branchId = Number(req.query.branch_id);
+      const date = typeof req.query.date === "string" ? req.query.date : new Date().toISOString().slice(0, 10);
+      const registers = await query<CashRegister & { cashier_name: string }>(
+        `SELECT cr.id, cr.cashier_id, cr.branch_id, cr.opening_amount, cr.closing_amount,
+                cr.opened_at, cr.closed_at, cr.status, u.name AS cashier_name
+         FROM cash_registers cr
+         JOIN users u ON u.id = cr.cashier_id
+         WHERE cr.branch_id = $1 AND cr.opened_at::date = $2::date
+         ORDER BY cr.opened_at DESC`,
+        [branchId, date]
+      );
+      res.status(200).json(registers);
+      return;
+    }
+
     const register = await queryOne<CashRegister>(
       `SELECT id, cashier_id, branch_id, opening_amount, closing_amount, opened_at, closed_at, status
        FROM cash_registers WHERE cashier_id = $1 AND status = 'open'`,

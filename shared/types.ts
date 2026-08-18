@@ -32,6 +32,8 @@ export interface CashRegister {
   opened_at: string;
   closed_at: string | null;
   status: RegisterStatus;
+  /** Solo presente en el listado admin por sucursal (GET /cash-registers?branch_id=...) */
+  cashier_name?: string;
 }
 
 export interface Order {
